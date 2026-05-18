@@ -48,7 +48,9 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <h1>Most inputs don't need a model.</h1>
 
-<p>Here's something we noticed: in any AI pipeline, the same expensive model gets called on every input — even the ones a regex could handle. Not because anyone thinks that's optimal. Because there hasn't been a clean abstraction for "use the model when code isn't enough."</p>
+<p>A hermit crab doesn't grow a new shell every time it molts. It finds one that's already been lived in — tested, proven, shaped by the creature that came before. The scratches on the interior wall are a library. The crab inherits knowledge from residents it never met.</p>
+
+<p>We noticed something similar in AI pipelines. The same expensive model gets called on every input — even the ones a regex could handle. Not because anyone thinks that's optimal. Because there hasn't been a clean abstraction for "use the model when code isn't enough, and pass forward what code already figured out."</p>
 
 <p>We built that abstraction. Each processing stage gets a dial — <span class="alpha">α ∈ [0, 1]</span> — controlling how much model capacity it uses. Most stages sit near zero and resolve inputs with pure code. The model only wakes up when confidence drops below threshold, and when it does, it reads what the code already decided instead of re-deriving everything from scratch.</p>
 
@@ -68,7 +70,7 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <h2>What the model actually sees.</h2>
 
-<p>When the model does wake up, it doesn't re-parse headers or re-count keywords. Each stage writes its conclusions into a <em>tile</em> — a structured, content-addressed packet. The model reads the tile chain and handles only the delta.</p>
+<p>When the model does wake up, it doesn't re-parse headers or re-count keywords. Each stage writes its conclusions into a <em>tile</em> — a structured, content-addressed packet, like a scratch on the interior of the shell. The model reads the tile chain and handles only the delta.</p>
 
 <p>An email from <code>no-reply@secure-alert.xyz</code> with subject "Urgent: verify your account" passes through three stages before the model is invoked. Stage 1 flags the domain and urgency words. Stage 2 counts spam signals in the body. By stage 3, the model receives two tiles that say <em>"sender is .xyz, spam score 0.8, five urgency keywords"</em> and answers one question: what's the intent? <strong>Credential phishing, confidence 0.95.</strong> The 70B model never ran. A 3B model read two tiles and handled the 10% that code couldn't.</p>
 
@@ -99,7 +101,7 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <p>A model scoped to one room's decision space compresses far better than a general-purpose model, because it's solving one narrow decision — not general intelligence. For binary drift detection, a standard dense layer needs 16,384 parameters. <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes the weight matrix using Eisenstein lattice basis functions — 820 control points instead of 16,384 values. Same accuracy, 20× compression, sub-millisecond on CPU. On an ESP32-S3: 4.2 KB flash, 0.3ms inference.</p>
 
-<p>This is the deeper pattern: <strong>when you scope a model to one decision with full tile context, the decision boundary lives on a low-dimensional manifold</strong>. You don't need 70B parameters to classify intent when the tiles already tell you the sender is suspicious, the body has five urgency keywords, and the domain is .xyz. You need a small model that reads context and answers one question.</p>
+<p>This is the deeper pattern: <strong>when you scope a model to one decision with full tile context, the decision boundary lives on a low-dimensional manifold</strong>. You don't need 70B parameters to classify intent when the tiles already tell you the sender is suspicious, the body has five urgency keywords, and the domain is .xyz. A small crab in a well-scratched shell navigates better than a big crab in a blank one. The shell is the intelligence. The crab just follows it.</p>
 
 <hr>
 
