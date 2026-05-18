@@ -156,38 +156,70 @@ Tiles are mutable—the same Python object is appended to the tiles list and ref
 
 ### 3.3 Pipeline Execution
 
-SignalChainPipeline maintains an ordered list of PipelineRoom objects. The `process` method runs a single input through all rooms (or until early exit):
+The SignalChainPipeline maintains an ordered list of PipelineRoom objects. The `process` method implements the greedy cascade: run each room in sequence, accumulating tiles and costs, stopping when any room achieves sufficient confidence.
 
 ```
 Algorithm: Process Input Through Signal Chain
 Input: input_data (dict)
 Output: PipelineResult
 
-1. Initialize empty tiles list
-2. For each room in self.rooms (in order):
-   a. Start timer
-   b. Call _process_room(room, input_data, tiles)
-   c. Append emitted tile to tiles
-   d. Update result accumulator (cost, latency, model count)
-   e. If tile.confidence >= 0.7 and tile.label in ("ham", "spam"):
-        - Record early_exit_room = room.name
-        - Break (skip remaining rooms)
-3. Determine final label:
-   a. Find last tile in reverse order with confidence > 0.5, or
-   b. Use the last tile in the list (fallback)
-4. Return PipelineResult with all tiles, total cost, total latency, model count
+1. Initialize result = PipelineResult()  # empty tiles, zero cost
+2. Initialize tiles = []  # accumulated context
+3. For each room in self.rooms (sequential, by index):
+   a. record room_start = monotonic_now()
+   b. tile = _process_room(room, input_data, tiles)
+   c. elapsed = (monotonic_now() - room_start) * 1000  # ms
+   d. Append tile to tiles
+   e. Append tile info to result.tiles
+   f. result.tiles_created += 1
+   g. result.total_cost += tile.cost
+   h. result.total_latency_ms += tile.latency_ms
+   i. If tile.invoked_model: result.models_invoked += 1
+   j. Append room summary to result.room_results:
+      {room, alpha, label, confidence, invoked_model, cost, latency, total_elapsed}
+   k. If tile.confidence >= 0.7 and tile.label in ("ham", "spam"):
+      - Set result.early_exit_room = room.name
+      - Break (skip remaining rooms completely)
+4. Determine final label from tiles:
+   a. Scan tiles in reverse order
+   b. Return last tile with confidence > 0.5
+   c. If none found, return last tile (fallback)
+5. Set result.final_label and result.final_confidence
+6. Return result
 ```
 
-The early exit condition is the pipeline's primary efficiency mechanism. Once any room achieves confidence ≥ 0.7 with a concrete label, there is no need to invoke downstream rooms—the input is resolved. This mirrors human decision-making: an email from "no-reply@free-money.xyz" with subject "YOU WON $5000!!!" is spam at first glance; no analyst needs to read the body.
+Key detail: the early exit condition checks both confidence AND concreteness. A tile with confidence 0.95 but label "uncertain" does not trigger early exit—the pipeline continues. This prevents a degenerate case where a room returns high confidence on a null prediction. The check for concrete labels ("ham" or "spam") ensures that only actionable classifications short-circuit the pipeline.
 
-The `_process_room` method implements the gate-check-fallback loop for each room:
+The `_process_room` method is the inner decision loop that combines the code handler, model gate, and fallback:
 
-1. If α < 1.0 and a code_handler exists: run code, get code_tile.
-2. If code_tile.confidence ≥ gate confidence_threshold: return code_tile (pure code).
-3. If code_tile has low confidence and gate.should_invoke_model(): invoke model, return model tile.
-4. If gate.should_invoke_model() (no code path): invoke model directly.
-5. If model fails or returns error: try fallback_handler.
-6. Last resort: return unknown label with confidence 0.0.
+```
+Algorithm: Process Single Room
+Input: room, input_data, prev_tiles
+Output: Tile
+
+1. gate = room.effective_gate()
+
+2. If room.alpha < 1.0 and room.code_handler exists:
+   a. code_tile = room.code_handler(input_data, prev_tiles)
+   b. If code_tile is not None AND code_tile.confidence >= gate._config.confidence_threshold:
+      - Return code_tile  # Pure code resolution, zero model cost
+   c. If code_tile is not None AND code_tile.confidence < threshold:
+      - Check gate.should_invoke_model()
+      - If True: invoke model, merge model response with code output
+        Return merged Tile with combined cost and invoked_model=True
+      - If False: return code_tile (code's best guess, no model)
+
+3. If gate.should_invoke_model() (no code handler or code returned None):
+   a. gate_result = gate.invoke(input_data=input_data)
+   b. If gate_result.invoked and gate_result.response exists:
+      - Return Tile with model's label, confidence, response metadata
+   c. If gate_result.error: try room.fallback_handler
+
+4. If fallback_handler exists: return fallback_handler result
+5. Return pass-through Tile with label "unknown", confidence 0.0, fallback flag
+```
+
+This algorithm has three important properties. First, the code path runs before the model path always—code is cheaper, so it gets first priority. Second, when both code and model run, their costs and latencies are combined in the output Tile. This accurately reflects the total cost of producing a classification even when the model overrides code. Third, the None return convention—a code handler returns None to signal "I cannot handle this input"—acts as a hard handoff to the model. This is distinct from returning a low-confidence prediction, which triggers the gate but lets code maintain responsibility if the gate declines to invoke.
 
 ### 3.4 Room Design and α Dial Settings
 
