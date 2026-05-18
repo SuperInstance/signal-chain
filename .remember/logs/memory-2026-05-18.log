@@ -25,3 +25,14 @@
 03:52:14 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
 03:52:39 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
 03:52:42 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:04:39 [hook] session-start: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0
+04:04:47 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:02 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:05 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:05 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:05 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:06 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:06 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:05:07 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:06:25 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3
+04:14:13 [hook] post-tool: PROJECT_DIR=/home/phoenix/.openclaw/workspace/signal-chain PIPELINE_DIR=/home/phoenix/.claude/plugins/cache/claude-plugins-official/remember/0.5.0 PYTHON=python3

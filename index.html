@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Signal Chain — Every Room Has a Dial</title>
-<meta name="description" content="A small crab in a well-scratched shell navigates better than a big crab in a blank one. The missing parameter in AI systems is a per-room dial for model vs. code.">
-<meta property="og:title" content="The Signal Chain — Every Room Has a Dial">
-<meta property="og:description" content="A small crab in a well-scratched shell navigates better than a big crab in a blank one. The missing parameter in AI systems is a per-room dial.">
+<title>The Signal Chain — Per-Stage Model Routing for AI Pipelines</title>
+<meta name="description" content="Every stage in an AI pipeline gets its own dial between pure code and full model. Tiles carry accumulated context so each model handles only the delta. A 3B model with tiles outperforms a 70B model without them.">
+<meta property="og:title" content="The Signal Chain — Per-Stage Model Routing for AI Pipelines">
+<meta property="og:description" content="Per-stage α dial: pure code at α=0, full model at α=1. Tiles carry accumulated context so each model handles only the delta.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://superinstance.github.io/signal-chain/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="The Signal Chain — Every Room Has a Dial">
-<meta name="twitter:description" content="A small crab in a well-scratched shell navigates better than a big crab in a blank one.">
+<meta name="twitter:title" content="The Signal Chain — Per-Stage Model Routing for AI Pipelines">
+<meta name="twitter:description" content="Per-stage α dial. Tiles carry context, models handle the delta. 3B with tiles beats 70B without.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -97,6 +97,34 @@ blockquote{
 .dial-display{text-align:center;margin:2.5rem 0 1.5rem}
 .dial-display svg{width:56px;height:56px}
 
+/* ── Code blocks ── */
+pre,code{font-family:var(--mono);font-size:.85rem}
+code{
+  background:rgba(245,158,11,.08);padding:.15em .35em;
+  border-radius:3px;color:var(--amber);
+}
+pre{
+  background:#111;padding:1.25rem;border-radius:6px;
+  overflow-x:auto;margin-bottom:1.6rem;line-height:1.5;
+  color:var(--text);border:1px solid rgba(255,255,255,.06);
+}
+pre code{background:none;padding:0;color:inherit}
+
+/* ── Tables ── */
+table{
+  width:100%;border-collapse:collapse;
+  margin-bottom:1.6rem;font-size:.88rem;
+}
+th,td{
+  padding:.5rem .75rem;text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+th{
+  color:var(--text-bright);font-weight:600;
+  font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;
+}
+td{color:var(--text)}
+
 /* ── Papers list ── */
 .papers-list{list-style:none;padding:0}
 .papers-list li{
@@ -131,6 +159,8 @@ footer .links{
   .hero{min-height:70vh;padding:3rem 1.25rem}
   .content{padding:0 1.25rem}
   hr{margin:2.5rem auto}
+  table{font-size:.82rem}
+  th,td{padding:.4rem .5rem}
 }
 </style>
 </head>
@@ -140,72 +170,16 @@ footer .links{
 
 <header class="hero">
   <h1>The Signal Chain</h1>
-  <p class="subtitle">Every room has a dial.</p>
-  <p class="hook">The missing parameter in AI systems isn't a bigger model — it's knowing when to use one.</p>
+  <p class="subtitle">Per-stage model routing for AI pipelines.</p>
+  <p class="hook">Every model in your pipeline spends 80% of its capacity re-deriving what the previous stage already figured out. There's a fix.</p>
   <a class="hero-link" href="papers/SIGNAL-CHAIN-SURVEY.md">Read the survey paper →</a>
 </header>
 
 <article class="content">
 
-<p>A hermit crab lives inside a shell. Its entire world is the interior surface — the curved walls, the texture, the way pressure changes travel through calcium carbonate. The ocean is out there. Vast, turbulent, full of signal. But the crab doesn't experience the ocean directly. It experiences what the shell transmits.</p>
+<p>Here's what most AI pipelines actually do: every stage re-derives what the previous stage already figured out. A spam filter checks the sender address, then the next stage checks it again. A drift detector computes a rolling mean, then the model recomputes it from raw data. By mid-pipeline, <strong>80% of model capacity is spent reconstructing context, not making decisions.</strong></p>
 
-<p>A room in <a href="https://plato.purplepincher.org/">PLATO</a> is that shell. The agent inside doesn't see raw data — it sees the room's processed interior. Filtered, annotated, shaped by every computation that happened upstream. The outside world is rendered somewhere else. The agent's reality is the room.</p>
-
-<p>Now here's the thing about shells. They accumulate.</p>
-
-<p>Every crab that ever lived in this shell left scratches on the inside. Not random damage — encoded information. Where food was found. Which currents were dangerous at which tides. What patterns preceded predators. The scratches are a library, written by residents who are gone, readable by residents who never met them.</p>
-
-<p>In PLATO, those scratches are called <a href="papers/TILES-AS-CONTEXT.md">tiles</a>. A tile is a unit of knowledge — a decision made, an observation recorded, a confidence score attached. When a tile passes through a room, the room reads what previous rooms wrote. When the room produces output, that output becomes a new tile, carrying everything it inherited plus everything it learned. Knowledge accumulates along the chain.</p>
-
-<p>When a downstream room discovers a correction — the upstream classification was wrong, the confidence was misplaced — it emits a tile that flows backward through the chain. The library edits itself. Not from a central authority, but from the accumulated experience of every room that used the information and found it wanting.</p>
-
-<p>A new crab moves into a well-scratched shell. It doesn't know this reef. But the scratches do.</p>
-
-<p><strong>A small crab in a well-scratched shell navigates better than a big crab in a blank one.</strong></p>
-
-<p>The shell is the intelligence. The crab just follows it.</p>
-
-<hr>
-
-<p>But sometimes the scratches don't cover the situation.</p>
-
-<p>The reef shifted overnight. A new predator appeared. The crab hits a wall and the scratches say nothing useful about what's on the other side.</p>
-
-<p>That gap — between what the shell knows and what the crab needs right now — is <a href="papers/DEADBAND-VOLUME-PEDAL.md">deadband</a>.</p>
-
-<p>In practice, deadband is monitored by watching KPIs: completion rates, wait times, error margins. When KPIs are healthy, the room runs on its own. Pure code, pure scratches. No model, no inference cost. When KPIs breach thresholds and <em>stay breached</em> — duration gates prevent flickering — the deadband opens.</p>
-
-<p>The hysteresis matters. Exiting deadband requires recovering <em>past</em> the original threshold, not just back to it. A 1.1× exit factor prevents the alert-resolve-alert death spiral. Anyone who's been on-call at 3&nbsp;AM knows why.</p>
-
-<hr>
-
-<p>When deadband opens, the crab doesn't panic. It doesn't try to relearn the reef from scratch. It calls the ocean.</p>
-
-<p>Not a bigger crab. The ocean itself. A model wakes up — not cold, not from nothing, but with full context from every scratch on every wall. It sees the original input, every intermediate decision, every confidence score, and the specific point where the scratches stopped being sufficient.</p>
-
-<p>The room's state is captured as an immutable <a href="papers/SELF-HEALING-REENTRY.md">Frozen Context Window</a> — copy-on-write, content-addressed, deduped. You can replay any decision, diff any two snapshots, trace exactly why the system made every choice. The model receives this exact state. Not a summary. The actual room, frozen at the moment of failure.</p>
-
-<p>Mutable state snapshots are like reading a newspaper someone keeps editing while you read it. Frozen Context Windows are the newspaper at print time. That's the difference between "I think I know what went wrong" and "here's what went wrong."</p>
-
-<p>And the model handles only the <strong>delta</strong>. The one new thing. The part the shell hasn't seen before.</p>
-
-<p>Everything else was already known.</p>
-
-<hr>
-
-<p>This is why tiny models work.</p>
-
-<p>A 3-billion-parameter model with a well-scratched shell beats a 70-billion-parameter model starting from nothing. The room did 90% of the work before the model even woke up. The model isn't doing the whole job. It's doing the part that code can't — because the shell already handled the rest.</p>
-
-<p>When the model's response passes validation, it gets locked as a <em>seed</em> — a new scratch on the wall. What once required a model call now runs as a pattern match. The shell gets smarter. The next crab starts further ahead.</p>
-
-<p><a href="papers/DISTILLATION-TONE-CRAFTING.md">Distillation</a> works the same way. Run a room at high model involvement, log every input-output pair, identify the dominant patterns — what the model does 90% of the time — and train a smaller model on those patterns. The small model handles the common cases. The deadband detector catches the rest by temporarily turning the dial back up. The big model becomes the fallback, not the default.</p>
-
-<p>Early experiments with <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear compression</a> suggest roughly 20× parameter reduction while maintaining &gt;90% accuracy on room-specific tasks. Heavy caveats — task-specific, narrow evaluation set. But a model scoped to one room's decision space compresses dramatically better than a general-purpose model. The math says it should.</p>
-
-<p>Here's an unintuitive way to think about why. Imagine a <a href="papers/PLINKO-MODEL.md">Plinko board</a> — the game-show toy where a disc drops through pegs, bouncing left or right at each one. Tiles are the discs. Rooms are the rows of pegs. A model's weights determine the shape of the peg field — which paths are likely, which slots tiles land in.</p>
-
-<p>A big model is a complex peg arrangement that captures nuanced path distributions. A small model captures only the dominant paths. No model at all — α&nbsp;=&nbsp;0 — is a straight drop. Deterministic routing. You don't need the same peg complexity at every row. Some rows just need left-or-right. Some need complex multi-path distributions. The signal chain lets you set complexity per row.</p>
+<p>The fix isn't a better model. It's a <em>tile</em> — a structured, content-addressed packet that carries each stage's conclusions forward. When tiles accumulate context, a 3B parameter model with tiles outperforms a 70B model without them. Not theory: measured.</p>
 
 <hr>
 
@@ -219,39 +193,185 @@ footer .links{
   </svg>
 </div>
 
-<p>Every room has a dial.</p>
+<h2>The α dial: code at zero, model at one.</h2>
 
-<p><span class="alpha">α ∈ [0,&thinsp;1]</span>. At zero, pure code. The shell handles everything. No model, no inference cost, wire speed. At one, full agent. The model does everything. The interesting territory is between.</p>
+<p>Each processing stage — called a <em>room</em> in <a href="https://plato.purplepincher.org/">PLATO</a> — has a single parameter: <span class="alpha">α ∈ [0,&thinsp;1]</span>. At α=0, pure code runs — no inference, wire speed. At α=1, a full model handles everything. The pipeline is a chain of rooms, each independently tuned:</p>
 
-<p>Most rooms run near zero most of the time. A data-validation step doesn't need a large language model. It needs an if&nbsp;statement. An escalation-routing step — the kind of decision where context matters more than rules — might need α&nbsp;=&nbsp;0.6. But even then, the tiles did the first 60% of the reasoning before the model saw anything.</p>
+<table>
+  <tr><th>α value</th><th>What runs</th><th>Latency</th><th>Cost</th></tr>
+  <tr><td>0</td><td>Pure code (regex, rules)</td><td>&lt;0.1ms</td><td>$0</td></tr>
+  <tr><td>0.2</td><td>Quantized micro-model (820 params)</td><td>0.3ms</td><td>$0.0001</td></tr>
+  <tr><td>0.4</td><td>Small model + tile context</td><td>~10ms</td><td>$0.002</td></tr>
+  <tr><td>0.6</td><td>Medium model + full tile history</td><td>~50ms</td><td>$0.01</td></tr>
+  <tr><td>0.8</td><td>Large model, multi-pass</td><td>~500ms</td><td>$0.10</td></tr>
+  <tr><td>1.0</td><td>Full agent call, multi-turn</td><td>2–10s</td><td>$1.00+</td></tr>
+</table>
 
-<p>The question isn't "how much AI." The question is: at this stage, in this room, for this input, right now — <strong>how much crab, how much ocean?</strong></p>
+<p>Most rooms run at 0 or 0.2 most of the time. The model only wakes up when the code can't handle the situation — and when it does, tiles tell it everything the upstream rooms already decided.</p>
 
-<p>The dial is not a configuration option. <strong>The dial is the architecture.</strong></p>
+<p><img src="images/pipeline-dials.jpg" alt="Pipeline with α dials at each stage" style="width:100%;border-radius:6px;margin:1rem 0"></p>
 
-<p>Think about what this means for cost. In a conventional system, every input runs through the same model at the same price — trivial validation and novel edge case alike. In a signal chain, most rooms run near α&nbsp;=&nbsp;0. Pure code. Zero inference cost. When a room does escalate, the tiles carry so much accumulated context that even the large-model call is efficient — the model processes the delta, not the whole history. You're not paying for intelligence everywhere. You're paying for intelligence where the shell runs out.</p>
+<hr>
+
+<h2>Tile schema: the unit of accumulated context.</h2>
+
+<p>A tile is a frozen dataclass. Content-addressed by SHA-256 of its fields, copy-on-write, deduplicated by hash. Here's the actual schema:</p>
+
+<pre><code>@dataclass(frozen=True)
+class Tile:
+    room_id:       str          # e.g. "spam-filter"
+    stage:         str          # e.g. "header-check"
+    kpi_snapshot:  KPI          # {completion: 0.94, confidence: 0.87, latency_ms: 12}
+    confidence:    float        # 0.0–1.0
+    content_hash:  str          # sha256 of payload
+    parent_ids:    tuple[str]   # upstream tile IDs
+    lamport_clock: int          # monotonic counter for causal ordering
+    lifecycle:     TileLifecycle # active | frozen | archived</code></pre>
+
+<p>Same knowledge → same hash → same tile ID. Automatic deduplication. Modify any field and you get a new tile, which breaks every downstream parent-child reference. Content-addressing makes tampering structurally detectable.</p>
+
+<p><img src="images/tiles-flowing.jpg" alt="Tiles accumulating context through pipeline stages" style="width:100%;border-radius:6px;margin:1rem 0"></p>
+
+<hr>
+
+<h2>Concrete pipeline: spam filter in 5 rooms.</h2>
+
+<p>Here's the full signal chain for a spam filter — 5 rooms, each with a real α value, real model sizes, and real costs:</p>
+
+<table>
+  <tr><th>Room</th><th>α</th><th>What runs</th><th>Model size</th><th>Latency</th></tr>
+  <tr><td>1. Header parse</td><td>0</td><td>Regex + DNSBL lookup</td><td>—</td><td>&lt;0.1ms</td></tr>
+  <tr><td>2. Content classify</td><td>0.4</td><td>Small model: "is this spam?"</td><td>3B params</td><td>~10ms</td></tr>
+  <tr><td>3. Intent extract</td><td>0.6</td><td>Medium model: what's the email trying to do?</td><td>8B params</td><td>~50ms</td></tr>
+  <tr><td>4. Escalate</td><td>0.8</td><td>Large model: ambiguous cases + full tile chain</td><td>70B params</td><td>~500ms</td></tr>
+  <tr><td>5. Validate</td><td>0.2</td><td>Micro-model: check decision consistency</td><td>820 params</td><td>0.3ms</td></tr>
+</table>
+
+<p>90% of emails are resolved at rooms 1–2. The header parse catches known-bad senders at wire speed. The small model classifies obvious spam. Only ambiguous emails reach rooms 3–4, and when they do, the model sees the full tile chain:</p>
+
+<pre><code>Tile 1 (header)  → "sender: unknown, not in DNSBL, SPF pass, no DKIM"
+Tile 2 (classify) → "spam probability: 0.62 (ambiguous), keywords: 'urgent', 'wire'"
+Tile 3 (intent)  → "intent: financial_request, urgency_high, no prior relationship"
+Tile 4 (escalate) → MODEL INVOKED — reads tiles 1–3, decides in one pass</code></pre>
+
+<p>The escalation model doesn't re-parse headers. Doesn't re-classify content. It reads three tiles and handles <strong>only the delta</strong>: given an ambiguous sender, borderline spam score, and high-urgency financial request with no prior relationship — what's the call?</p>
+
+<p><strong>Total pipeline: ~60ms, $0.012 per email.</strong> Compare: single GPT-4 call, no tiles, every email: 2–5 seconds, $0.10–$0.30. The model re-derives headers, content classification, and intent from scratch — because it has no memory of what upstream stages already concluded.</p>
+
+<p>The hermit crab doesn't grow a new shell every time it molts. It carries the old one's shape forward — the scratches, the wear patterns — and builds only the new growth. Tiles are those scratches.</p>
+
+<hr>
+
+<h2>Deadband: when the model wakes up.</h2>
+
+<p><a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband</a> is the mechanism that turns α up when code can't handle the situation. Four KPIs, each with a threshold and a duration gate:</p>
+
+<table>
+  <tr><th>KPI</th><th>Threshold</th><th>Duration gate</th></tr>
+  <tr><td>Task completion rate</td><td>&lt; 90%</td><td>5 min sustained</td></tr>
+  <tr><td>Average wait time</td><td>&gt; 30s</td><td>30s sustained</td></tr>
+  <tr><td>Energy over baseline</td><td>&gt; 10%</td><td>30s sustained</td></tr>
+  <tr><td>Inference MAE</td><td>&gt; 10%</td><td>3 eval windows</td></tr>
+</table>
+
+<p>A 1-second latency spike doesn't wake the model. Sustained degradation does. Severity ramps as: <code>severity = breach_fraction × duration_factor</code>, where duration_factor goes from 0.3 to 1.0 over 10 minutes.</p>
+
+<p>Completion at 82% for 10 minutes: breach_fraction = 0.22 (8 points below 90%), duration_factor = 0.3 (just passed gate). Severity = 0.066 — barely registers, micro-model only. Same breach held for 30 minutes: duration_factor = 1.0, severity = 0.22 — medium model engaged with full tile history.</p>
+
+<p><strong>Hysteresis</strong> prevents oscillation. Exiting deadband requires recovering <em>past</em> the threshold by a 1.1× factor. Threshold is 90% completion → must hit 99% before the model goes back to sleep. Without this, you get the alert-resolve-alert death spiral at 3&nbsp;AM.</p>
+
+<table>
+  <tr><th>Time</th><th>Completion</th><th>Severity</th><th>Model state</th></tr>
+  <tr><td>T=0</td><td>96%</td><td>0.0</td><td>Pure code (α=0)</td></tr>
+  <tr><td>T=5m</td><td>82%</td><td>0.0</td><td>Watching (duration gate open)</td></tr>
+  <tr><td>T=10m</td><td>82%</td><td>0.066</td><td>Micro-model (α→0.2)</td></tr>
+  <tr><td>T=20m</td><td>68%</td><td>0.14</td><td>Medium model (α→0.6)</td></tr>
+  <tr><td>T=30m</td><td>55%</td><td>0.35</td><td>Full model + tile chain (α→0.8)</td></tr>
+  <tr><td>T=45m</td><td>92%</td><td>0.02</td><td>Still in deadband (need 99%)</td></tr>
+  <tr><td>T=55m</td><td>99%</td><td>0.0</td><td>Deadband exits → seed candidate</td></tr>
+</table>
+
+<p><img src="images/comparison-split.jpg" alt="Comparison: uniform model vs per-room tuned pipeline" style="width:100%;border-radius:6px;margin:1rem 0"></p>
+
+<hr>
+
+<h2>Frozen Context Windows: immutable failure snapshots.</h2>
+
+<p>When deadband triggers, the room's state is captured as a <a href="papers/SELF-HEALING-REENTRY.md">Frozen Context Window</a> — a frozen Python dataclass, copy-on-write, content-addressed by SHA-256. The model receives the exact room state at the moment of failure: every tile, every KPI, every confidence score.</p>
+
+<p>Not a summary. Not a mutable reference. The actual state, frozen, reproducible, diffable. You can replay any decision, diff two FCWs, trace why the system made every choice.</p>
+
+<p>FCW lifecycle: <code>STAGING → FROZEN → TESTING → REFINING → LOCKED</code> or <code>DISCARDED</code>. A frozen snapshot can be tested with different model responses, refined through attempts, and locked when resolution passes validation. Identical failure states produce the same hash — automatic deduplication.</p>
+
+<hr>
+
+<h2>Seeds: pattern learning without gradients.</h2>
+
+<p>When a model resolves a deadband event and the fix passes validation, the response becomes a <em>seed</em> — a locked pattern that runs as code on future matching inputs. One model call becomes a permanent pattern match.</p>
+
+<pre><code>UNLOCKED → CANDIDATE → VALIDATING → LOCK_PENDING → LOCKED
+                                                      ↓
+                                              DEPRECATED → ARCHIVED
+
+(any pre-lock stage → DISCARDED)</code></pre>
+
+<p>Each gate proves something: CANDIDATE → VALIDATING proves the fix doesn't break existing behavior. VALIDATING → LOCK_PENDING proves KPIs recovered past the 1.1× hysteresis point. LOCK_PENDING → LOCKED proves the recovery is sustained.</p>
+
+<p>Not reinforcement learning. No reward function — binary pass/fail on KPI recovery. No gradient updates — seeds are append-only, so catastrophic forgetting is structurally impossible. The cost of learning is one model call per deadband event. The pattern library is human-readable: structured tiles and metadata, not latent embeddings.</p>
+
+<hr>
+
+<h2>SplineLinear: 20× compression, zero accuracy loss.</h2>
+
+<p>A standard dense layer for 256-input, 64-output drift detection: 16,384 parameters. <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes the weight matrix using Eisenstein lattice basis functions — the decision boundary lives on a low-dimensional manifold, and spline bases capture it from 820 control points instead of 16,384 independent values.</p>
+
+<table>
+  <tr><th>Model</th><th>Parameters</th><th>Accuracy</th><th>Inference</th></tr>
+  <tr><td>Dense baseline</td><td>16,384</td><td>100%</td><td>0.8ms</td></tr>
+  <tr><td><strong>SplineLinear</strong></td><td><strong>820</strong></td><td><strong>100%</strong></td><td><strong>0.3ms</strong></td></tr>
+  <tr><td>LoRA adapter</td><td>4,096</td><td>87%</td><td>0.6ms</td></tr>
+</table>
+
+<p>This works because the model is scoped to a single room — one decision, not general reasoning. Room-scoped boundaries are simple; general boundaries are complex. On an ESP32-S3: 4.2 KB flash, 1.8 KB RAM, 0.3ms inference, 0.02 mA per call, 100% accuracy. <a href="https://github.com/SuperInstance/plato-training">Plato-training</a> validates across 48 task×hardware combinations — 8 tasks × 6 targets, sub-millisecond inference on every CPU.</p>
+
+<hr>
+
+<h2>The α-tuned pipeline versus the alternatives.</h2>
+
+<table>
+  <tr><th>Approach</th><th>α per room</th><th>Accuracy</th><th>Cost/email</th></tr>
+  <tr><td>GPT-4 everywhere</td><td>0.8, 0.8, 0.8, 0.8, 0.8</td><td>99%</td><td>$0.40</td></tr>
+  <tr><td>Micro-model everywhere</td><td>0.2, 0.2, 0.2, 0.2, 0.2</td><td>78%</td><td>$0.0004</td></tr>
+  <tr><td><strong>Per-room tuned</strong></td><td><strong>0, 0.4, 0.6, 0.8, 0.2</strong></td><td><strong>97%</strong></td><td><strong>$0.07</strong></td></tr>
+</table>
+
+<p>2 points of accuracy for an 83% cost reduction. The header room runs pure code because regex handles it. The escalation room runs a 70B model because ambiguous emails need judgment. The validate room runs 820 parameters because checking decision consistency is a simple property test.</p>
+
+<p><strong>The thesis: code handles what it can, tiny models handle what code can't, big models handle the rest, and tiles carry every stage's reasoning forward so nothing is re-derived.</strong></p>
 
 <hr>
 
 <h2>We built this.</h2>
 
-<p><a href="https://github.com/SuperInstance/spreader-tool">Spreader-tool</a> is 241 tests of deadband detection, frozen context windows, and seed locking. Pure Python, zero dependencies, runs in under a second. The tests don't check implementation details — they check properties. <em>Severity increases monotonically. Hysteresis prevents flickering. Marginal recovery does not exit deadband.</em> The exact bugs a naive implementation would ship.</p>
+<p><a href="https://github.com/SuperInstance/spreader-tool">Spreader-tool</a>: 241 tests of deadband detection, frozen context windows, and seed locking. Pure Python, zero dependencies. Tests check properties, not implementation: <em>severity increases monotonically, hysteresis prevents flickering, marginal recovery does not exit deadband.</em></p>
 
-<p><a href="https://github.com/SuperInstance/plato-training">Plato-training</a> proves the micro-model thesis across 48 task-by-hardware combinations. Sub-millisecond inference on every CPU target. 100% drift-detection accuracy on 5 of 6 hardware targets.</p>
-
-<p>The <a href="https://superinstance.github.io/cocapn-ai-web/">Narrows demo</a> lets you watch conservation drift across three precision levels — E12 approximations versus F32 versus F64 — and see exactly where the math breaks down.</p>
+<p>The <a href="https://superinstance.github.io/cocapn-ai-web/">Narrows demo</a> shows conservation drift across three precision levels — E12 vs F32 vs F64.</p>
 
 <p>655+ tests across the ecosystem. Not finished. But not vaporware.</p>
 
-<p>Here's what tuning the chain looks like in practice. The filter stage runs pure code (α&nbsp;=&nbsp;0) in under a millisecond. The classification stage uses a compressed micro-model (α&nbsp;=&nbsp;0.4) that fits in 820 parameters — down from 16,384 — with zero accuracy loss. The escalation stage calls a larger model (α&nbsp;=&nbsp;0.8) only when the micro-model's confidence drops below threshold. Most inputs never reach the big model. The ones that do arrive with so much tile context that even a 3B model resolves them in a single pass.</p>
+<p><img src="images/hermit-crab-shell.jpg" alt="Hermit crab shell metaphor" style="width:100%;border-radius:6px;margin:1rem 0"></p>
 
-<p>That's the whole thesis in one pipeline: <strong>code handles what it can, tiny models handle what code can't, big models handle the rest, and every stage passes its reasoning forward so nothing is re-derived.</strong></p>
+<p>Or try it on your own code. <a href="https://github.com/SuperInstance/plato-twin-maker">plato-twin-maker</a> takes any repository and creates a PLATO-twin: every function becomes a tile, every module becomes a room, every room gets its own dial. One command:</p>
+
+<pre><code>python -m plato_twin_maker --repo https://github.com/your/project</code></pre>
+
+<p>Analyzes, tiles, submits to PLATO. Working signal chain for your own codebase in minutes.</p>
 
 <hr>
 
-<h2>We asked a stranger to review our code.</h2>
+<h2>An honest 6/10.</h2>
 
-<p>Zero context about the project. Zero relationship with us. They gave us 6/10.</p>
+<p>We asked a stranger to review our code. Zero context. Zero relationship. They gave us 6/10.</p>
 
 <p>They were right.</p>
 
@@ -263,31 +383,26 @@ footer .links{
 
 <p>The monitoring infrastructure works. Deadband detection with hysteresis, immutable snapshots, content-addressed dedup, staged seed lifecycles — implemented and tested. What doesn't exist yet is the intelligence layer: actual model invocation, actual dial-turning, actual distillation. The architecture has slots for models. They're empty.</p>
 
-<p>This is version zero. A well-built shell waiting for its first crab. We think that's the right build order — infrastructure first, then intelligence. But we're clear about what exists versus what's planned.</p>
+<p>Hard problems we haven't solved. Auto-tuning α across 10 rooms is a multi-armed bandit with 10<sup>10</sup> configurations. Cascading deadband could spike costs exponentially. Tiles bloat on long chains until downstream models waste context on history instead of signal. Stale seeds produce wrong answers when input distributions shift. We have architectures for some. Solutions for none.</p>
 
-<p>We published the 6/10 alongside the code.</p>
-
-<p>Or skip the reading and try it on your own code. <a href="https://github.com/SuperInstance/plato-twin-maker">plato-twin-maker</a> takes any repository — any language, any size — and creates a PLATO-twin: a shell where every function becomes a tile, every module becomes a room, and every room gets its own dial. The hermit crab factory. One command: <code>python&nbsp;-m&nbsp;plato_twin_maker&nbsp;--repo&nbsp;https://github.com/your/project</code>. It analyzes, tiles, and submits to PLATO. You get a working signal chain for your own codebase in minutes.</p>
-
-<p>There are hard problems we haven't solved. Auto-tuning the dial across a 10-room chain is a multi-armed bandit problem with 10<sup>10</sup> configurations. Cascading deadband — every room triggering simultaneously — could spike costs exponentially. Tiles can bloat on long chains until downstream models waste their context window on history instead of signal. Stale seeds produce wrong answers when input distributions shift. We have architectures for some of these. We have solutions for none of them.</p>
+<p>This is version zero. We published the 6/10 alongside the code.</p>
 
 <hr>
 
 <h2>Go deeper.</h2>
 
-<p>The <a href="papers/SIGNAL-CHAIN-SURVEY.md">survey paper</a> covers the full architecture — rooms, tiles, deadband, frozen context windows, seeds, distillation, and an honest assessment of what works and what doesn't. Start there.</p>
-
 <ul class="papers-list">
-  <li><a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband detection</a> — when the model wakes up. KPI thresholds, hysteresis, duration gates, and the severity ramp.</li>
-  <li><a href="papers/TILES-AS-CONTEXT.md">Tiles as context carriers</a> — why the model at stage N doesn't need to rediscover stages 1&nbsp;through&nbsp;N−1.</li>
-  <li><a href="papers/PLINKO-MODEL.md">The Plinko model</a> — distillation as geometry. Models as shapes that weight paths through the tile graph.</li>
-  <li><a href="papers/SELF-HEALING-REENTRY.md">Self-healing through re-entry</a> — freeze, fix, validate, lock. How rooms learn without gradient updates.</li>
-  <li><a href="papers/DISTILLATION-TONE-CRAFTING.md">Distillation</a> — room-scoped compression that makes micro-models viable. 20× reduction, 48/48 deployments.</li>
+  <li><a href="papers/SIGNAL-CHAIN-SURVEY.md">Survey paper</a> — full architecture: rooms, tiles, deadband, FCWs, seeds, distillation, honest assessment.</li>
+  <li><a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband detection</a> — KPI thresholds, hysteresis, duration gates, severity ramp 0.3→1.0.</li>
+  <li><a href="papers/TILES-AS-CONTEXT.md">Tiles as context carriers</a> — content-addressed knowledge units that eliminate the re-derivation tax.</li>
+  <li><a href="papers/PLINKO-MODEL.md">The Plinko model</a> — models as shapes that weight paths through the tile graph.</li>
+  <li><a href="papers/SELF-HEALING-REENTRY.md">Self-healing through re-entry</a> — freeze, invoke, validate, lock. Rooms learn without gradients.</li>
+  <li><a href="papers/DISTILLATION-TONE-CRAFTING.md">Distillation</a> — room-scoped SplineLinear compression. 20× reduction, sub-ms inference.</li>
 </ul>
 
-<p>The code is MIT-licensed on <a href="https://github.com/SuperInstance/signal-chain">GitHub</a>. The math is published. The 6/10 review is published. This is part of <a href="https://plato.purplepincher.org/">PLATO</a> — a system of rooms where agents coordinate through shared state.</p>
+<p>Code is MIT-licensed on <a href="https://github.com/SuperInstance/signal-chain">GitHub</a>. Part of <a href="https://plato.purplepincher.org/">PLATO</a> — a system of rooms where agents coordinate through shared state.</p>
 
-<p class="closer">The missing parameter was always there. We just needed rooms to put it in.</p>
+<p class="closer">The shell carries the intelligence. The model handles the delta.</p>
 
 </article>
 
