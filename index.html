@@ -56,6 +56,8 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <p>The result: <strong>94% of emails in our benchmark resolved without invoking the model at all.</strong> Same accuracy. Sixteen times faster. Tested against real APIs — Groq Llama 3.3 70B and DeepInfra Seed-2.0-mini — not mocks.</p>
 
+<p><img src="images/rooms.jpg" alt="" style="width:100%;border-radius:6px;margin:1.5rem 0;opacity:.45"></p>
+
 <hr>
 
 <h2>Why a dial per stage, not a pre-filter.</h2>
@@ -93,6 +95,8 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <p>94% fewer API calls. 16.7× faster. Same accuracy. The math compounds: at 100K inputs/hour, uniform invocation costs $3,000/hour. If 76% resolve at <span class="alpha">α = 0</span>, you save $2,280/hour. At scale, this is millions per year — not because the model is better, but because you stopped calling it on inputs it didn't need to see.</p>
 
+<p><img src="images/hero.jpg" alt="" style="width:100%;border-radius:6px;margin:1.5rem 0;opacity:.45"></p>
+
 <p><a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/real_benchmark.py">Reproduce it</a> with your own API keys.</p>
 
 <hr>
@@ -102,6 +106,8 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 <p>A model scoped to one room's decision space compresses far better than a general-purpose model, because it's solving one narrow decision — not general intelligence. For binary drift detection, a standard dense layer needs 16,384 parameters. <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes the weight matrix using Eisenstein lattice basis functions — 820 control points instead of 16,384 values. Same accuracy, 20× compression, sub-millisecond on CPU. On an ESP32-S3: 4.2 KB flash, 0.3ms inference.</p>
 
 <p>This is the deeper pattern: <strong>when you scope a model to one decision with full tile context, the decision boundary lives on a low-dimensional manifold</strong>. You don't need 70B parameters to classify intent when the tiles already tell you the sender is suspicious, the body has five urgency keywords, and the domain is .xyz. A small crab in a well-scratched shell navigates better than a big crab in a blank one. The shell is the intelligence. The crab just follows it.</p>
+
+<p><img src="images/writing.jpg" alt="" style="width:100%;border-radius:6px;margin:1.5rem 0;opacity:.45"></p>
 
 <hr>
 
@@ -116,6 +122,8 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 <p>50 emails is a proof of concept, not production validation. We need 10K+ inputs, precision/recall curves, and adversarial testing. Auto-tuning α across a 10-stage chain is an unsolved optimization problem. Cascading deadband — every stage triggering simultaneously — could spike costs. Tiles bloat on long chains. Stale seeds produce wrong answers when distributions shift. The production adapters (batching, retries, rate limiting) don't exist yet.</p>
 
 <p>We're building in the open. 310 tests, zero dependencies, <a href="https://github.com/SuperInstance/spreader-tool">all on GitHub</a>. The <a href="papers/SIGNAL-CHAIN.md">paper</a> is 6,400 words with the full architecture, evaluation, and honest limitations. Additional papers on <a href="papers/DEADBAND-VOLUME-PEDAL.md">deadband detection</a>, <a href="papers/SELF-HEALING-REENTRY.md">frozen context windows</a>, and <a href="papers/TILES-AS-CONTEXT.md">tiles</a>.</p>
+
+<p><img src="images/failures.jpg" alt="" style="width:100%;border-radius:6px;margin:1.5rem 0;opacity:.45"></p>
 
 <footer>
   <div class="links">
