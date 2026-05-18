@@ -73,6 +73,7 @@ Each room is a pedal on the board. The deadband detector is the volume pedal —
 
 ## Read More
 
+- [**PLATO Landing Page**](https://plato.purplepincher.org/) — the full system. 114 rooms, 14,110 tiles, hermit crabs, honest failures.
 - [Ecosystem Map](https://github.com/SuperInstance/forgemaster/blob/master/ECOSYSTEM-MAP.md) — 80+ repos, 655+ tests, 6 languages
 - [Getting Started](https://github.com/SuperInstance/forgemaster/blob/master/GETTING-STARTED.md) — 3-path onboarding (Math / Models / Ecosystem)
 - [Assembly Guide](https://github.com/SuperInstance/forgemaster/blob/master/ASSEMBLY-GUIDE.md) — 5 self-assembly patterns, pick what you need
