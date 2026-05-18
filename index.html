@@ -243,6 +243,10 @@ footer .links{
 
 <p>655+ tests across the ecosystem. Not finished. But not vaporware.</p>
 
+<p>Here's what tuning the chain looks like in practice. The filter stage runs pure code (α&nbsp;=&nbsp;0) in under a millisecond. The classification stage uses a compressed micro-model (α&nbsp;=&nbsp;0.4) that fits in 820 parameters — down from 16,384 — with zero accuracy loss. The escalation stage calls a larger model (α&nbsp;=&nbsp;0.8) only when the micro-model's confidence drops below threshold. Most inputs never reach the big model. The ones that do arrive with so much tile context that even a 3B model resolves them in a single pass.</p>
+
+<p>That's the whole thesis in one pipeline: <strong>code handles what it can, tiny models handle what code can't, big models handle the rest, and every stage passes its reasoning forward so nothing is re-derived.</strong></p>
+
 <hr>
 
 <h2>We asked a stranger to review our code.</h2>
@@ -262,6 +266,8 @@ footer .links{
 <p>This is version zero. A well-built shell waiting for its first crab. We think that's the right build order — infrastructure first, then intelligence. But we're clear about what exists versus what's planned.</p>
 
 <p>We published the 6/10 alongside the code.</p>
+
+<p>Or skip the reading and try it on your own code. <a href="https://github.com/SuperInstance/plato-twin-maker">plato-twin-maker</a> takes any repository — any language, any size — and creates a PLATO-twin: a shell where every function becomes a tile, every module becomes a room, and every room gets its own dial. The hermit crab factory. One command: <code>python&nbsp;-m&nbsp;plato_twin_maker&nbsp;--repo&nbsp;https://github.com/your/project</code>. It analyzes, tiles, and submits to PLATO. You get a working signal chain for your own codebase in minutes.</p>
 
 <p>There are hard problems we haven't solved. Auto-tuning the dial across a 10-room chain is a multi-armed bandit problem with 10<sup>10</sup> configurations. Cascading deadband — every room triggering simultaneously — could spike costs exponentially. Tiles can bloat on long chains until downstream models waste their context window on history instead of signal. Stale seeds produce wrong answers when input distributions shift. We have architectures for some of these. We have solutions for none of them.</p>
 
