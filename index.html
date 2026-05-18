@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Signal Chain — Per-Stage Model Routing</title>
+<title>Signal Chain - Per-Stage Model Routing</title>
 <meta name="description" content="Each stage in your pipeline gets a dial between pure code (α=0) and full model (α=1). Tiles carry context so the model handles only the delta.">
-<meta property="og:title" content="Signal Chain — Per-Stage Model Routing">
-<meta property="og:description" content="Per-stage α routing: tiles carry context, models handle only the delta. 87% cost reduction on spam filter benchmark.">
+<meta property="og:title" content="Signal Chain - Per-Stage Model Routing">
+<meta property="og:description" content="Per-stage α routing: tiles carry context, models handle only the delta. 94% call reduction on real model benchmark.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://superinstance.github.io/signal-chain/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
@@ -70,23 +70,23 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <p>Input: <code>"Urgent: verify your account immediately"</code> from <code>no-reply@secure-alert.xyz</code></p>
 
-<pre><code>Room 1 — Header parse        <span class="tag tag-code">α = 0 · CODE</span>
+<pre><code>Room 1 - Header parse        <span class="tag tag-code">α = 0 · CODE</span>
   sender domain: .xyz → known spam TLD
   subject: "urgent", "verify", "immediately" → 3 suspicious words
   result: spam_score = 0.8, confidence = 0.8
   cost: $0.000   latency: 0.08ms
   <strong>→ tile emitted: {room: "header", spam: 0.8, signals: ["bad_tld", "urgency_words"]}</strong>
 
-Room 2 — Content classify     <span class="tag tag-code">α = 0.4 · CODE + MICRO</span>
+Room 2 - Content classify     <span class="tag tag-code">α = 0.4 · CODE + MICRO</span>
   body: "Click here to verify your account or lose access"
   keyword count: "verify"×2, "account"×2, "click here"×1
   result: spam_score = 0.88, confidence = 0.88
   cost: $0.0001  latency: 0.3ms
   <strong>→ tile emitted: {room: "classify", spam: 0.88, keywords: 5}</strong>
 
-Room 3 — Intent extract       <span class="tag tag-model">α = 0.6 · SMALL MODEL</span>
+Room 3 - Intent extract       <span class="tag tag-model">α = 0.6 · SMALL MODEL</span>
   reads tiles 1-2: sender is .xyz, spam score 0.88, 5 urgency keywords
-  model input: just the delta — "what's the intent given these signals?"
+  model input: just the delta - "what's the intent given these signals?"
   result: intent = "credential_phishing", confidence = 0.95
   cost: $0.005   latency: 8ms
   <strong>→ tile emitted: {room: "intent", intent: "phishing", confidence: 0.95}</strong>
@@ -99,7 +99,7 @@ Rooms 4-5: SKIPPED
 
 <p>Now consider the same pipeline on a different email: <code>"Hey, can we push the deploy to Friday?"</code> from <code>sarah@company.com</code></p>
 
-<pre><code>Room 1 — Header parse        <span class="tag tag-code">α = 0 · CODE</span>
+<pre><code>Room 1 - Header parse        <span class="tag tag-code">α = 0 · CODE</span>
   sender domain: company.com → internal, trusted
   subject: no suspicious words
   result: spam_score = 0.0, confidence = 0.8
@@ -116,7 +116,7 @@ Rooms 2-5: SKIPPED</code></pre>
 
 <h2>The dial: α ∈ [0, 1] per stage.</h2>
 
-<p>Each processing stage has one parameter. <span class="alpha">α = 0</span> means pure code — regex, lookup tables, arithmetic. <span class="alpha">α = 1</span> means full model invocation on every input. Between, the stage tries code first and escalates to the model only when code confidence is below threshold.</p>
+<p>Each processing stage has one parameter. <span class="alpha">α = 0</span> means pure code - regex, lookup tables, arithmetic. <span class="alpha">α = 1</span> means full model invocation on every input. Between, the stage tries code first and escalates to the model only when code confidence is below threshold.</p>
 
 <table>
   <tr><th>α</th><th>What actually runs</th><th>Latency</th><th>Cost</th></tr>
@@ -125,7 +125,7 @@ Rooms 2-5: SKIPPED</code></pre>
   <tr><td><span class="alpha">0.4</span></td><td>Code first; 3B model on low-confidence inputs</td><td>~10ms</td><td>$0.002</td></tr>
   <tr><td><span class="alpha">0.6</span></td><td>Small model by default; tiles from upstream</td><td>~50ms</td><td>$0.01</td></tr>
   <tr><td><span class="alpha">0.8</span></td><td>Large model with full tile history</td><td>~500ms</td><td>$0.10</td></tr>
-  <tr><td><span class="alpha">1.0</span></td><td>Full model, every input, no code fallback</td><td>1–10s</td><td>$1.00+</td></tr>
+  <tr><td><span class="alpha">1.0</span></td><td>Full model, every input, no code fallback</td><td>1-10s</td><td>$1.00+</td></tr>
 </table>
 
 <p>The gate logic is straightforward:</p>
@@ -137,32 +137,32 @@ Rooms 2-5: SKIPPED</code></pre>
         if code_result.confidence >= room.confidence_threshold:
             return code_result.as_tile()    # done, no model needed
 
-    # Code wasn't confident enough — invoke model with tile context
+    # Code wasn't confident enough - invoke model with tile context
     model_result = room.model.invoke(
         prompt = build_prompt(input_data, tile_chain),
         max_cost = room.max_cost_per_call
     )
     return model_result.as_tile()</code></pre>
 
-<p>Most rooms exit on the code path most of the time. The model handles the delta — the part the shell doesn't already know.</p>
+<p>Most rooms exit on the code path most of the time. The model handles the delta - the part the shell doesn't already know.</p>
 
 <hr>
 
 <h2>Tiles: structured context packets.</h2>
 
-<p>A tile is a content-addressed, immutable record of what one room decided. It carries the room ID, the confidence score, a label, and arbitrary metadata. Tiles accumulate through the pipeline — room 3 reads tiles from rooms 1 and 2, then emits its own.</p>
+<p>A tile is a content-addressed, immutable record of what one room decided. It carries the room ID, the confidence score, a label, and arbitrary metadata. Tiles accumulate through the pipeline - room 3 reads tiles from rooms 1 and 2, then emits its own.</p>
 
 <pre><code>@dataclass(frozen=True)
 class Tile:
     room_name: str           # "header_parse"
     label: str | None        # "spam", "ham", "uncertain"
-    confidence: float        # 0.0–1.0
+    confidence: float        # 0.0-1.0
     metadata: dict           # {"domain_suspicious": True, "keyword_hits": 5}
     cost: float              # $0.005
     latency_ms: float        # 8.2
     invoked_model: bool      # False for pure code</code></pre>
 
-<p>Content-addressed means two rooms that see the same input and produce the same result emit tiles with the same hash. Deduplication is automatic — if room 1 already classified this sender as spam last week, the tile is already stored.</p>
+<p>Content-addressed means two rooms that see the same input and produce the same result emit tiles with the same hash. Deduplication is automatic - if room 1 already classified this sender as spam last week, the tile is already stored.</p>
 
 <p>The practical effect: when the 70B model runs in room 4, it doesn't re-parse headers, re-count keywords, or re-classify content. It reads three tiles and answers one question. The tiles carry 90% of the reasoning. The model handles the remaining 10%.</p>
 
@@ -170,28 +170,28 @@ class Tile:
 
 <h2>Early exit: most inputs don't reach the end.</h2>
 
-<p>When a room resolves with confidence ≥ threshold and its label is definitive ("ham" or "spam"), the pipeline stops. Downstream rooms are skipped entirely — no invocation, no cost, no latency.</p>
+<p>When a room resolves with confidence ≥ threshold and its label is definitive (“ham” or “spam”), the pipeline stops. Downstream rooms are skipped entirely — no invocation, no cost, no latency.</p>
 
-<p>On the spam filter benchmark (100 emails: 50 ham, 30 spam, 20 ambiguous):</p>
+<p>Real API benchmark — 50 emails tested against Groq (Llama 3.3 70B) and DeepInfra (Seed-2.0-mini):</p>
 
 <table>
-  <tr><th>Room</th><th>α</th><th>Resolved here</th><th>Cumulative</th><th>Avg cost</th></tr>
-  <tr><td>1. Header parse</td><td><span class="alpha">0</span></td><td>48 emails</td><td>48%</td><td>$0.000</td></tr>
-  <tr><td>2. Content classify</td><td><span class="alpha">0.4</span></td><td>31 emails</td><td>79%</td><td>$0.0001</td></tr>
-  <tr><td>3. Intent extract</td><td><span class="alpha">0.6</span></td><td>12 emails</td><td>91%</td><td>$0.005</td></tr>
-  <tr><td>4. Escalate</td><td><span class="alpha">0.8</span></td><td>7 emails</td><td>98%</td><td>$0.03</td></tr>
-  <tr><td>5. Validate</td><td><span class="alpha">0.2</span></td><td>2 emails</td><td>100%</td><td>$0.0001</td></tr>
+  <tr><th>Metric</th><th>Signal chain (Seed-mini)</th><th>Uniform (every email)</th></tr>
+  <tr><td>Accuracy</td><td><strong>100%</strong></td><td>100%</td></tr>
+  <tr><td>Model API calls</td><td><strong>3/50</strong></td><td>50/50</td></tr>
+  <tr><td>Avg latency</td><td><strong>117ms</strong></td><td>1,952ms</td></tr>
+  <tr><td>Call reduction</td><td colspan="2"><strong>94%</strong></td></tr>
+  <tr><td>Latency speedup</td><td colspan="2"><strong>16.7×</strong></td></tr>
 </table>
 
-<p>79% of emails resolved at rooms 1–2. The 70B model ran on 7 emails out of 100. The other 93 never triggered it.</p>
+<p>38 of 50 emails resolved by pure code at room 1. Only 3 needed the model. Same accuracy, 94% fewer API calls, 16.7× faster.</p>
 
 <div class="stats-row">
-  <div class="stat"><span class="number">87%</span><span class="label">cost reduction</span></div>
-  <div class="stat"><span class="number">12×</span><span class="label">faster latency</span></div>
+  <div class="stat"><span class="number">94%</span><span class="label">call reduction</span></div>
+  <div class="stat"><span class="number">16.7×</span><span class="label">faster latency</span></div>
   <div class="stat"><span class="number">100%</span><span class="label">accuracy</span></div>
 </div>
 
-<p>Reproducible: <a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/spam_filter.py">run the benchmark yourself</a> (<code>python examples/spam_filter.py</code>).</p>
+<p>Reproducible with real models: <code>GROQ_API_KEY=... DEEPINFRA_KEY=... python <a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/real_benchmark.py">examples/real_benchmark.py</a></code>. Mock version: <code>python <a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/spam_filter.py">examples/spam_filter.py</a></code>.</p>
 
 <hr>
 
@@ -206,15 +206,15 @@ class Tile:
   <tr><td>Inference error (MAE)</td><td>&gt; 10%</td><td>3 eval windows</td><td>Seed unlocked, model invoked</td></tr>
 </table>
 
-<p>Hysteresis prevents flickering: exiting deadband requires recovering <em>past</em> the original threshold by a 1.1× factor. Not just back to 90% completion — up to 99%. Anyone who's been on-call at 3 AM knows why this matters.</p>
+<p>Hysteresis prevents flickering: exiting deadband requires recovering <em>past</em> the original threshold by a 1.1× factor. Not just back to 90% completion - up to 99%. Anyone who's been on-call at 3 AM knows why this matters.</p>
 
-<p>When deadband opens, the room's state is captured as a <strong>Frozen Context Window</strong> — an immutable, copy-on-write snapshot. The model receives the exact room state at the moment of failure, not a summary. You can replay any decision, diff any two snapshots, trace exactly why the system made every choice.</p>
+<p>When deadband opens, the room's state is captured as a <strong>Frozen Context Window</strong> - an immutable, copy-on-write snapshot. The model receives the exact room state at the moment of failure, not a summary. You can replay any decision, diff any two snapshots, trace exactly why the system made every choice.</p>
 
 <hr>
 
 <h2>Seeds: locking validated patterns.</h2>
 
-<p>When a model response passes validation, it gets locked as a <em>seed</em>. The seed captures the pattern — "for inputs like this, this response worked." Next time a similar input arrives, the code path matches the seed instead of invoking the model.</p>
+<p>When a model response passes validation, it gets locked as a <em>seed</em>. The seed captures the pattern - "for inputs like this, this response worked." Next time a similar input arrives, the code path matches the seed instead of invoking the model.</p>
 
 <pre><code>Seed lifecycle:
   UNLOCKED → CANDIDATE → VALIDATING → LOCK_PENDING → LOCKED
@@ -246,7 +246,7 @@ class Tile:
 
 <h2>Compression: small models for narrow decisions.</h2>
 
-<p>A model scoped to one room's decision space compresses far better than a general-purpose model. The decision boundary for binary drift detection lives on a low-dimensional manifold — <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes the weight matrix using Eisenstein lattice basis functions:</p>
+<p>A model scoped to one room's decision space compresses far better than a general-purpose model. The decision boundary for binary drift detection lives on a low-dimensional manifold - <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes the weight matrix using Eisenstein lattice basis functions:</p>
 
 <table>
   <tr><th>Model</th><th>Parameters</th><th>Accuracy (drift-detect)</th><th>Inference</th></tr>
@@ -255,13 +255,13 @@ class Tile:
   <tr><td>LoRA adapter</td><td>4,096</td><td>87%</td><td>0.6ms</td></tr>
 </table>
 
-<p>20× compression, same accuracy, sub-millisecond on CPU. On an ESP32-S3: 4.2 KB flash, 1.8 KB RAM, 0.3ms inference. This works because the model solves one narrow decision per room — not general intelligence.</p>
+<p>20× compression, same accuracy, sub-millisecond on CPU. On an ESP32-S3: 4.2 KB flash, 1.8 KB RAM, 0.3ms inference. This works because the model solves one narrow decision per room - not general intelligence.</p>
 
 <hr>
 
 <h2>Open problems.</h2>
 
-<p>Auto-tuning α across a 10-room chain is a multi-armed bandit problem with 10<sup>10</sup> configurations. Cascading deadband — every room triggering simultaneously — could spike costs. Tiles bloat on long chains. Stale seeds produce wrong answers when input distributions shift.</p>
+<p>Auto-tuning α across a 10-room chain is a multi-armed bandit problem with 10<sup>10</sup> configurations. Cascading deadband - every room triggering simultaneously - could spike costs. Tiles bloat on long chains. Stale seeds produce wrong answers when input distributions shift.</p>
 
 <p>The current benchmark uses a deterministic mock model backend. Production deployment requires real model adapters with batching, retries, and rate limiting.</p>
 
@@ -269,25 +269,25 @@ class Tile:
 
 <h2>Implementation.</h2>
 
-<p><a href="https://github.com/SuperInstance/spreader-tool">spreader-tool</a> — 310 tests, zero dependencies, pure Python. Run the benchmark: <code>python examples/spam_filter.py</code></p>
+<p><a href="https://github.com/SuperInstance/spreader-tool">spreader-tool</a> - 310 tests, zero dependencies, pure Python. Run the benchmark: <code>python examples/spam_filter.py</code></p>
 
 <ul class="papers-list">
-  <li><a href="https://github.com/SuperInstance/plato-types">plato-types</a> — Tile lifecycle, Lamport clocks, content addressing</li>
-  <li><a href="https://github.com/SuperInstance/tensor-spline">tensor-spline</a> — SplineLinear compression (820 params, same accuracy)</li>
-  <li><a href="https://github.com/SuperInstance/plato-training">plato-training</a> — Micro-model training across 8 tasks × 6 hardware targets</li>
-  <li><a href="https://github.com/SuperInstance/plato-twin-maker">plato-twin-maker</a> — Auto-tile any repository into a PLATO twin</li>
+  <li><a href="https://github.com/SuperInstance/plato-types">plato-types</a> - Tile lifecycle, Lamport clocks, content addressing</li>
+  <li><a href="https://github.com/SuperInstance/tensor-spline">tensor-spline</a> - SplineLinear compression (820 params, same accuracy)</li>
+  <li><a href="https://github.com/SuperInstance/plato-training">plato-training</a> - Micro-model training across 8 tasks × 6 hardware targets</li>
+  <li><a href="https://github.com/SuperInstance/plato-twin-maker">plato-twin-maker</a> - Auto-tile any repository into a PLATO twin</li>
 </ul>
 
 <h2>Go deeper.</h2>
 
-<p>The <a href="papers/SIGNAL-CHAIN.md">full paper</a> covers the architecture in detail — formal problem statement, pipeline execution algorithm, evaluation against baselines, ablation results, and related work. 6,000 words, concrete throughout.</p>
+<p>The <a href="papers/SIGNAL-CHAIN.md">full paper</a> covers the architecture in detail - formal problem statement, pipeline execution algorithm, evaluation against baselines, ablation results, and related work. 6,000 words, concrete throughout.</p>
 
 <ul class="papers-list">
-  <li><a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband detection</a> — KPI monitoring with hysteresis and duration gates</li>
-  <li><a href="papers/SELF-HEALING-REENTRY.md">Frozen Context Windows</a> — immutable failure snapshots for debugging</li>
-  <li><a href="papers/DISTILLATION-TONE-CRAFTING.md">Distillation</a> — from high-α runs to locked seeds</li>
-  <li><a href="papers/PLINKO-MODEL.md">Models as path weights</a> — why per-room models compress 20×</li>
-  <li><a href="papers/TILES-AS-CONTEXT.md">Tiles as context carriers</a> — knowledge at point of use</li>
+  <li><a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband detection</a> - KPI monitoring with hysteresis and duration gates</li>
+  <li><a href="papers/SELF-HEALING-REENTRY.md">Frozen Context Windows</a> - immutable failure snapshots for debugging</li>
+  <li><a href="papers/DISTILLATION-TONE-CRAFTING.md">Distillation</a> - from high-α runs to locked seeds</li>
+  <li><a href="papers/PLINKO-MODEL.md">Models as path weights</a> - why per-room models compress 20×</li>
+  <li><a href="papers/TILES-AS-CONTEXT.md">Tiles as context carriers</a> - knowledge at point of use</li>
 </ul>
 
 <p>MIT License · <a href="https://github.com/SuperInstance/signal-chain">GitHub</a> · Part of <a href="https://plato.purplepincher.org/">PLATO</a></p>
