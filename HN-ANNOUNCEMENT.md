@@ -1,26 +1,35 @@
-# Show HN: We cut LLM API calls by 94% by not calling the model when we didn't need to
+# Show HN: Every AI pipeline stage should have its own dial for model vs code
 
 ---
 
 ## The Post
 
-Most inputs to an AI pipeline don't need a model. We tested this on email classification with real model APIs (Groq Llama 3.3 70B and DeepInfra Seed-2.0-mini). 50 emails. Only 3 needed a model call. The other 47 were resolved by a regex and a keyword counter. Same accuracy. 16.7× lower latency. 94% fewer API calls.
+Here's a pattern we keep seeing: AI pipelines call a model on every input, every time, regardless of complexity. A simple sender-domain check costs the same $0.03 API call as a nuanced intent classification. The model re-parses what a regex already decided. The pipeline treats every stage as equally expensive and every input as equally complex.
 
-The architecture: each processing stage has a dial for how much model capacity to use. At zero, pure code (regex, lookups, arithmetic). At one, full model invocation. In between, code tries first and escalates to the model when it isn't confident. When a stage resolves confidently, downstream stages don't run at all. Every stage writes its conclusions into a structured packet (a "tile") so the model reads what upstream code already decided instead of re-deriving everything.
+This is wasteful in a way that compounds. At scale, you're burning millions re-deriving conclusions that code could have reached in microseconds.
 
-This isn't model routing or model cascades. FrugalGPT and similar systems pick one model per input — "which model should handle this?" We're asking a different question: "at which pipeline stage, for this input, does code stop being sufficient?" That's a per-stage confidence threshold with accumulated context and early pipeline termination. The model handles only the delta. The tiles carry the other 90%.
+The fix is architectural. Give each processing stage its own dial: how much model capacity does this stage need? Most stages sit at zero — pure code, regex, arithmetic, lookups — and resolve inputs for near-zero cost. When code isn't confident, the dial turns up and the model handles the hard part. When a stage resolves confidently, downstream stages don't run at all.
 
-The math compounds. At 100K inputs/hour with a $0.03 model call, uniform invocation costs $3,000/hour. If 76% resolve at the code stage — which our benchmark shows — you save $2,280/hour. The savings are proportional to your code-resolution rate.
+The key is what flows between stages. Each one writes its conclusions into a structured packet — a tile — that carries forward. So when the model does wake up, it doesn't re-parse headers or re-count keywords. It reads the tile chain and handles only the delta: the part that code couldn't resolve. The model handles 10% of the reasoning. The tiles carry the other 90%.
 
-The pattern generalizes. Email spam (~76% code-resolved). Intent routing (~70%). Content moderation (~60%). Sensor monitoring (~90%). Document triage (~75%). Any pipeline where most inputs are decidable by simple rules and only a minority need deep reasoning.
+We tested this with real model APIs. Email classification: 94% of inputs resolved without invoking the model. Same accuracy, 16.7× lower latency. But email is the least interesting application. The pattern generalizes to any pipeline where most inputs are decidable by simple rules and only a minority need deep reasoning:
 
-What we haven't solved: 50 emails is a proof of concept, not production validation. Real deployment needs 10K+ inputs, distribution shift testing, and p99 latency numbers. Auto-tuning the dial across a multi-stage chain is an unsolved optimization problem. Cascading failures could spike costs. Tiles bloat on long chains. The production adapters (batching, retries, rate limiting) don't exist yet. We're building in the open.
+- **Sensor monitoring** (~90% code-resolved) — thresholds and rolling statistics handle normal operation; the model handles distribution shift
+- **Document triage** (~75%) — metadata and header classification route most documents; the model handles ambiguous content
+- **Intent routing** (~70%) — exact-match handles common intents; the model handles novel utterances
+- **Content moderation** (~60%) — blocklists and regex catch the obvious; the model handles context-dependent cases
+
+At 100K inputs/hour with a $0.03 model call, that's the difference between $3,000/hour and $720/hour. The savings are proportional to your code-resolution rate — which turns out to be surprisingly high in most pipelines.
+
+This isn't model routing or model cascades. Those systems pick one model per input: "which model should handle this?" We're asking a different question: "at which pipeline stage, for this input, does code stop being sufficient?" That's per-stage, per-input, with accumulated context and early termination. It's the difference between routing an input to a model and routing a *decision* to a model.
+
+What we haven't solved: our benchmark is 50 emails — a proof of concept, not production validation. Auto-tuning the dial across a multi-stage chain is an unsolved optimization problem. Cascading failures could spike costs. The production adapters (batching, retries, rate limiting) don't exist yet. We're building in the open.
 
 Implementation: 310 tests, zero dependencies, pure Python. The benchmark script runs against real model APIs with your own keys.
 
 Repo: https://github.com/SuperInstance/signal-chain
-Landing page (full walkthrough): https://superinstance.github.io/signal-chain/
+Landing page: https://superinstance.github.io/signal-chain/
 Proof of concept: https://github.com/SuperInstance/spreader-tool
 Paper: https://github.com/SuperInstance/signal-chain/blob/master/papers/SIGNAL-CHAIN.md
 
-Genuine question: we're aware that confidence-based escalation and cascading classifiers exist in production systems (Google's serving cost optimization, Stripe's fraud pipeline). What we haven't seen is the per-stage dial with accumulated structured context + early pipeline termination as a composable pattern. Are people doing this under different names? If you've built something similar, we'd like to compare notes.
+Genuine question: confidence-based escalation exists in production systems (Google's serving optimization, Stripe's fraud pipeline). What we haven't seen is the per-stage dial with accumulated structured context + early pipeline termination as a composable, reusable pattern. Are people doing this under different names? We'd like to compare notes.
