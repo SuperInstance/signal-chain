@@ -3,34 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Signal Chain - Per-Stage Model Routing</title>
-<meta name="description" content="Each stage in your pipeline gets a dial between pure code (α=0) and full model (α=1). Tiles carry context so the model handles only the delta.">
-<meta property="og:title" content="Signal Chain - Per-Stage Model Routing">
-<meta property="og:description" content="Per-stage α routing: tiles carry context, models handle only the delta. 94% call reduction on real model benchmark.">
+<title>Signal Chain — Per-Stage Model Routing</title>
+<meta name="description" content="Every input hits the same 70B model. Most don't need it. Give each stage a dial between code and model. 94% fewer calls, same accuracy.">
+<meta property="og:title" content="Signal Chain — Per-Stage Model Routing">
+<meta property="og:description" content="Most inputs don't need a model. Give each stage a dial. 94% fewer API calls, 16.7× faster, same accuracy. Tested with real models.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://superinstance.github.io/signal-chain/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0a0a;
-  --text:#c8c8c8;
-  --text-bright:#e8e8e8;
-  --text-dim:#636363;
-  --amber:#f59e0b;
-  --amber-hover:#fbbf24;
-  --green:#22c55e;
-  --red:#ef4444;
-  --mono:'SF Mono','Fira Code','Cascadia Code',ui-monospace,monospace;
-  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
-}
-html{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:17px;line-height:1.75;scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+:root{--bg:#0a0a0a;--text:#c8c8c8;--text-bright:#e8e8e8;--text-dim:#636363;--amber:#f59e0b;--amber-hover:#fbbf24;--green:#22c55e;--red:#ef4444;--mono:'SF Mono','Fira Code','Cascadia Code',ui-monospace,monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+html{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:18px;line-height:1.78;scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
 body{padding-bottom:4rem}
 .topbar{height:3px;background:linear-gradient(90deg,transparent,var(--amber),transparent);position:fixed;top:0;left:0;right:0;z-index:100}
-.content{max-width:700px;margin:0 auto;padding:4rem 1.5rem 0}
+.content{max-width:680px;margin:0 auto;padding:4rem 1.5rem 0}
 h1{font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;color:var(--text-bright);line-height:1.15;margin-bottom:1.5rem}
 h2{font-size:clamp(1.15rem,2.5vw,1.4rem);font-weight:700;color:var(--text-bright);letter-spacing:-.02em;margin:3rem 0 1.25rem}
-h3{font-size:1.05rem;font-weight:600;color:var(--text-bright);margin:1.5rem 0 .75rem}
 p{margin-bottom:1.4rem}
 strong{color:var(--text-bright);font-weight:600}
 a{color:var(--amber);text-decoration:underline;text-decoration-color:rgba(245,158,11,.3);text-underline-offset:3px;transition:color .15s}
@@ -47,18 +35,13 @@ hr{border:none;height:1px;background:linear-gradient(90deg,transparent,rgba(245,
 .tag{display:inline-block;font-family:var(--mono);font-size:.72rem;padding:.15em .5em;border-radius:3px;margin-right:.4em;font-weight:600}
 .tag-code{background:rgba(34,197,94,.15);color:var(--green)}
 .tag-model{background:rgba(245,158,11,.15);color:var(--amber)}
-.tag-escalate{background:rgba(239,68,68,.15);color:var(--red)}
-.stats-row{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap;margin:2rem 0}
-.stat{text-align:center;min-width:100px}
-.stat .number{font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:800;color:var(--amber);display:block;letter-spacing:-.03em}
-.stat .label{font-size:.78rem;color:var(--text-dim);display:block;margin-top:.15rem}
 .papers-list{list-style:none;padding:0}
 .papers-list li{margin-bottom:.6rem;padding-left:1.5rem;position:relative;font-size:.9rem}
 .papers-list li::before{content:'→';position:absolute;left:0;color:var(--amber);opacity:.5}
-footer{max-width:700px;margin:4rem auto 0;padding:2rem 1.5rem;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:.85rem;color:var(--text-dim)}
+footer{max-width:680px;margin:4rem auto 0;padding:2rem 1.5rem;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:.85rem;color:var(--text-dim)}
 footer a{text-decoration:none}
 footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;margin-bottom:.75rem}
-@media(max-width:640px){html{font-size:16px}.content{padding:3rem 1.25rem 0}table{font-size:.8rem}th,td{padding:.4rem .45rem}.stats-row{gap:1rem}}
+@media(max-width:640px){html{font-size:16px}.content{padding:3rem 1.25rem 0}table{font-size:.8rem}th,td{padding:.4rem .45rem}}
 </style>
 </head>
 <body>
@@ -66,233 +49,124 @@ footer .links{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;marg
 
 <article class="content">
 
-<h1>An email enters a spam filter.<br>Here's what happens at each stage.</h1>
+<h1>Most inputs don't need a model.</h1>
 
-<p>Input: <code>"Urgent: verify your account immediately"</code> from <code>no-reply@secure-alert.xyz</code></p>
+<p>Every input hits the same 70B model. That's the default architecture: one big model, every request, every time. It works. It's also like using a scalpel to open every piece of mail — technically correct, massively overqualified for 90% of the job.</p>
 
-<pre><code>Room 1 - Header parse        <span class="tag tag-code">α = 0 · CODE</span>
-  sender domain: .xyz → known spam TLD
-  subject: "urgent", "verify", "immediately" → 3 suspicious words
-  result: spam_score = 0.8, confidence = 0.8
-  cost: $0.000   latency: 0.08ms
-  <strong>→ tile emitted: {room: "header", spam: 0.8, signals: ["bad_tld", "urgency_words"]}</strong>
+<p>The fix isn't "use smaller models" or "add a pre-filter." Those are binary — either you're using the big model or you're not. The fix is to give each processing stage its own dial for how much model capacity to use, and to carry forward every intermediate result so nothing is re-derived.</p>
 
-Room 2 - Content classify     <span class="tag tag-code">α = 0.4 · CODE + MICRO</span>
-  body: "Click here to verify your account or lose access"
-  keyword count: "verify"×2, "account"×2, "click here"×1
-  result: spam_score = 0.88, confidence = 0.88
-  cost: $0.0001  latency: 0.3ms
-  <strong>→ tile emitted: {room: "classify", spam: 0.88, keywords: 5}</strong>
-
-Room 3 - Intent extract       <span class="tag tag-model">α = 0.6 · SMALL MODEL</span>
-  reads tiles 1-2: sender is .xyz, spam score 0.88, 5 urgency keywords
-  model input: just the delta - "what's the intent given these signals?"
-  result: intent = "credential_phishing", confidence = 0.95
-  cost: $0.005   latency: 8ms
-  <strong>→ tile emitted: {room: "intent", intent: "phishing", confidence: 0.95}</strong>
-
-Rooms 4-5: SKIPPED
-  confidence ≥ 0.7 + label in ("ham", "spam") → early exit
-  cost: $0.000   latency: 0ms</code></pre>
-
-<p>Total: $0.0051, 8.4ms, spam confidence 0.95. The 70B model never ran. Three rooms handled it with regex, a keyword counter, and a 3B model that read two tiles and answered one question.</p>
-
-<p>Now consider the same pipeline on a different email: <code>"Hey, can we push the deploy to Friday?"</code> from <code>sarah@company.com</code></p>
-
-<pre><code>Room 1 - Header parse        <span class="tag tag-code">α = 0 · CODE</span>
-  sender domain: company.com → internal, trusted
-  subject: no suspicious words
-  result: spam_score = 0.0, confidence = 0.8
-  cost: $0.000   latency: 0.08ms
-  <strong>→ early exit: confidence 0.8 ≥ threshold, label = "ham"</strong>
-
-Rooms 2-5: SKIPPED</code></pre>
-
-<p>Total: $0.000, 0.08ms. One regex check resolved it. No model invocation, no inference, no API call.</p>
-
-<p>That's the entire architecture. Every stage has a dial for how much model capacity to use. When the code path is confident enough, downstream stages are skipped. When it's not, the model reads the tile chain and handles only the part that code couldn't.</p>
+<p>We tested it on email classification with real model APIs (Groq Llama 3.3 70B, DeepInfra Seed-2.0-mini). <strong>94% of emails resolved without invoking the model at all.</strong> Same accuracy. Sixteen times faster. Here's how it works.</p>
 
 <hr>
 
-<h2>The dial: α ∈ [0, 1] per stage.</h2>
+<h2>One email, five stages.</h2>
 
-<p>Each processing stage has one parameter. <span class="alpha">α = 0</span> means pure code - regex, lookup tables, arithmetic. <span class="alpha">α = 1</span> means full model invocation on every input. Between, the stage tries code first and escalates to the model only when code confidence is below threshold.</p>
+<p>Consider: <code>"Urgent: verify your account immediately"</code> from <code>no-reply@secure-alert.xyz</code></p>
+
+<p>Stage 1 is pure code. <span class="alpha">α = 0</span>. A regex checks the sender domain — <code>.xyz</code> is a known spam TLD. Three suspicious words in the subject line: "urgent," "verify," "immediately." Spam score 0.8. Confidence 0.8. But that's not above the threshold for a definitive call, so the email passes to stage 2.</p>
+
+<p>Stage 2 counts keywords. "Click here," "verify," "account," "lose access" — five spam signals, zero ham signals. Spam score 0.88. Confidence 0.88. Still not definitive. Passes to stage 3.</p>
+
+<p>Stage 3 is where the model wakes up. <span class="alpha">α = 0.6</span>. But the model doesn't re-parse the sender domain. It doesn't re-count keywords. It reads two tiles — structured packets from stages 1 and 2 that say <em>"sender is .xyz, spam score 0.8, five urgency keywords"</em> — and answers one question: what's the intent? <strong>Credential phishing. Confidence 0.95.</strong> The 70B model never ran. A 3B model read two tiles and answered one question.</p>
+
+<p>Total cost: $0.005. Total latency: 8ms.</p>
+
+<p>Now consider: <code>"Hey, can we push the deploy to Friday?"</code> from <code>sarah@company.com</code></p>
+
+<p>Stage 1: internal domain, no suspicious words. Confidence 0.75. <strong>Definitive. Pipeline stops.</strong> Stages 2–5 never ran. Cost: $0.000. Latency: 0.08ms. One regex check.</p>
+
+<p>That's the entire architecture. Each stage has a dial — <span class="alpha">α ∈ [0, 1]</span>. At zero, pure code. At one, full model. In between, code tries first and escalates to the model only when it isn't confident. When a stage resolves definitively, downstream stages are skipped. Every stage writes its conclusions into a <em>tile</em> — a structured, content-addressed packet that carries forward so the model never re-derives what upstream code already figured out.</p>
+
+<hr>
+
+<h2>The numbers from real models.</h2>
+
+<p>50 emails (20 ham, 15 spam, 15 ambiguous). Two backends: Groq Llama 3.3 70B and DeepInfra Seed-2.0-mini. Each email tested against both the signal chain and a uniform baseline (model on every input):</p>
 
 <table>
-  <tr><th>α</th><th>What actually runs</th><th>Latency</th><th>Cost</th></tr>
-  <tr><td><span class="alpha">0</span></td><td>Regex, rules, arithmetic, lookup tables</td><td>&lt;0.1ms</td><td>$0</td></tr>
-  <tr><td><span class="alpha">0.2</span></td><td>Code first; 820-param micro-model if unsure</td><td>0.3ms</td><td>$0.0001</td></tr>
-  <tr><td><span class="alpha">0.4</span></td><td>Code first; 3B model on low-confidence inputs</td><td>~10ms</td><td>$0.002</td></tr>
-  <tr><td><span class="alpha">0.6</span></td><td>Small model by default; tiles from upstream</td><td>~50ms</td><td>$0.01</td></tr>
-  <tr><td><span class="alpha">0.8</span></td><td>Large model with full tile history</td><td>~500ms</td><td>$0.10</td></tr>
-  <tr><td><span class="alpha">1.0</span></td><td>Full model, every input, no code fallback</td><td>1-10s</td><td>$1.00+</td></tr>
-</table>
-
-<p>The gate logic is straightforward:</p>
-
-<pre><code>def process_room(room, input_data, tile_chain):
-    # Try code first
-    if room.alpha < 1.0:
-        code_result = room.code_handler(input_data, tile_chain)
-        if code_result.confidence >= room.confidence_threshold:
-            return code_result.as_tile()    # done, no model needed
-
-    # Code wasn't confident enough - invoke model with tile context
-    model_result = room.model.invoke(
-        prompt = build_prompt(input_data, tile_chain),
-        max_cost = room.max_cost_per_call
-    )
-    return model_result.as_tile()</code></pre>
-
-<p>Most rooms exit on the code path most of the time. The model handles the delta - the part the shell doesn't already know.</p>
-
-<hr>
-
-<h2>Tiles: structured context packets.</h2>
-
-<p>A tile is a content-addressed, immutable record of what one room decided. It carries the room ID, the confidence score, a label, and arbitrary metadata. Tiles accumulate through the pipeline - room 3 reads tiles from rooms 1 and 2, then emits its own.</p>
-
-<pre><code>@dataclass(frozen=True)
-class Tile:
-    room_name: str           # "header_parse"
-    label: str | None        # "spam", "ham", "uncertain"
-    confidence: float        # 0.0-1.0
-    metadata: dict           # {"domain_suspicious": True, "keyword_hits": 5}
-    cost: float              # $0.005
-    latency_ms: float        # 8.2
-    invoked_model: bool      # False for pure code</code></pre>
-
-<p>Content-addressed means two rooms that see the same input and produce the same result emit tiles with the same hash. Deduplication is automatic - if room 1 already classified this sender as spam last week, the tile is already stored.</p>
-
-<p>The practical effect: when the 70B model runs in room 4, it doesn't re-parse headers, re-count keywords, or re-classify content. It reads three tiles and answers one question. The tiles carry 90% of the reasoning. The model handles the remaining 10%.</p>
-
-<hr>
-
-<h2>Early exit: most inputs don't reach the end.</h2>
-
-<p>When a room resolves with confidence ≥ threshold and its label is definitive (“ham” or “spam”), the pipeline stops. Downstream rooms are skipped entirely — no invocation, no cost, no latency.</p>
-
-<p>Real API benchmark — 50 emails tested against Groq (Llama 3.3 70B) and DeepInfra (Seed-2.0-mini):</p>
-
-<table>
-  <tr><th>Metric</th><th>Signal chain (Seed-mini)</th><th>Uniform (every email)</th></tr>
-  <tr><td>Accuracy</td><td><strong>100%</strong></td><td>100%</td></tr>
-  <tr><td>Model API calls</td><td><strong>3/50</strong></td><td>50/50</td></tr>
-  <tr><td>Avg latency</td><td><strong>117ms</strong></td><td>1,952ms</td></tr>
+  <tr><th></th><th>Signal chain</th><th>Uniform</th></tr>
+  <tr><td>Accuracy (Seed-mini)</td><td><strong>100%</strong></td><td>100%</td></tr>
+  <tr><td>Model API calls</td><td><strong>3 out of 50</strong></td><td>50 out of 50</td></tr>
+  <tr><td>Average latency</td><td><strong>117ms</strong></td><td>1,952ms</td></tr>
   <tr><td>Call reduction</td><td colspan="2"><strong>94%</strong></td></tr>
   <tr><td>Latency speedup</td><td colspan="2"><strong>16.7×</strong></td></tr>
 </table>
 
-<p>38 of 50 emails resolved by pure code at room 1. Only 3 needed the model. Same accuracy, 94% fewer API calls, 16.7× faster.</p>
+<p>38 emails resolved by pure code at stage 1. Zero model cost, sub-millisecond. Only 12 even reached stage 2, and only 3 needed the model. The uniform baseline invoked a model on every single email, including the 20 internal emails where a single sender check was sufficient.</p>
 
-<div class="stats-row">
-  <div class="stat"><span class="number">94%</span><span class="label">call reduction</span></div>
-  <div class="stat"><span class="number">16.7×</span><span class="label">faster latency</span></div>
-  <div class="stat"><span class="number">100%</span><span class="label">accuracy</span></div>
-</div>
+<p>The economics compound. At 100K inputs per hour with a $0.03 model call, uniform invocation costs $3,000/hour. At 10 million per day, that's $4.4M per year. If 76% of inputs resolve at α = 0 — which our benchmark shows — you save $3.3M. The savings are proportional to your code-resolution rate.</p>
 
-<p>Reproducible with real models: <code>GROQ_API_KEY=... DEEPINFRA_KEY=... python <a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/real_benchmark.py">examples/real_benchmark.py</a></code>. Mock version: <code>python <a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/spam_filter.py">examples/spam_filter.py</a></code>.</p>
+<p><a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/real_benchmark.py">Run the benchmark yourself</a> (<code>GROQ_API_KEY=... DEEPINFRA_KEY=... python examples/real_benchmark.py</code>).</p>
 
 <hr>
 
-<h2>Deadband: turning α up automatically.</h2>
+<h2>Why this works: the model handles only the delta.</h2>
 
-<p>The α dial doesn't have to be static. <a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband detection</a> monitors KPIs and turns α up when code can't handle the situation:</p>
+<p>The key insight is that <strong>tiles carry 90% of the reasoning.</strong> By the time the model sees an input, it doesn't need to parse headers, count keywords, or classify obvious cases. Those are already decided — encoded in tiles that say exactly what each stage concluded and how confident it was. The model reads the tile chain and handles only the part that code couldn't resolve.</p>
+
+<p>This is why small models work per-room. A model scoped to one room's decision space — "given these upstream conclusions, what's the intent?" — needs far less capacity than a general-purpose model. We measured: for binary drift detection, a standard dense layer needs 16,384 parameters. <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes using Eisenstein lattice basis functions — 820 control points instead of 16,384 independent values. Same accuracy. 20× compression. Sub-millisecond on every CPU target, including an ESP32-S3 (4.2 KB flash, 0.3ms inference).</p>
+
+<p>This only works because the model is solving one narrow decision per room. It's not doing general intelligence. It's reading tiles and answering one question.</p>
+
+<hr>
+
+<h2>Where this applies.</h2>
+
+<p>Any pipeline where most inputs are decidable by simple rules and only a minority need deep reasoning:</p>
 
 <table>
-  <tr><th>KPI</th><th>Breach threshold</th><th>Duration gate</th><th>What happens</th></tr>
-  <tr><td>Task completion</td><td>&lt; 90%</td><td>5 min sustained</td><td>Severity ramps 0.3 → 1.0</td></tr>
-  <tr><td>Average wait time</td><td>&gt; 30s</td><td>30s sustained</td><td>FCW created, model notified</td></tr>
-  <tr><td>Inference error (MAE)</td><td>&gt; 10%</td><td>3 eval windows</td><td>Seed unlocked, model invoked</td></tr>
-</table>
-
-<p>Hysteresis prevents flickering: exiting deadband requires recovering <em>past</em> the original threshold by a 1.1× factor. Not just back to 90% completion - up to 99%. Anyone who's been on-call at 3 AM knows why this matters.</p>
-
-<p>When deadband opens, the room's state is captured as a <strong>Frozen Context Window</strong> - an immutable, copy-on-write snapshot. The model receives the exact room state at the moment of failure, not a summary. You can replay any decision, diff any two snapshots, trace exactly why the system made every choice.</p>
-
-<hr>
-
-<h2>Seeds: locking validated patterns.</h2>
-
-<p>When a model response passes validation, it gets locked as a <em>seed</em>. The seed captures the pattern - "for inputs like this, this response worked." Next time a similar input arrives, the code path matches the seed instead of invoking the model.</p>
-
-<pre><code>Seed lifecycle:
-  UNLOCKED → CANDIDATE → VALIDATING → LOCK_PENDING → LOCKED
-                                                         ↓
-                                              (if KPIs degrade)
-                                                         ↓
-                                              ESCALATING → DEPRECATED → ARCHIVED</code></pre>
-
-<p>Locked seeds are the mechanism for distillation. Run a room at high α for a while, collect input-output pairs, identify the dominant patterns (what the model does 90% of the time), and lock those as seeds. The seeds handle the common cases. Deadband catches the rest by turning α back up temporarily.</p>
-
-<hr>
-
-<h2>Where this pattern applies.</h2>
-
-<p>Any multi-stage pipeline where most inputs are decidable by simple rules and only a minority need deep reasoning:</p>
-
-<table>
-  <tr><th>Domain</th><th>Room 1 (pure code, α=0)</th><th>Escalation room (α=0.8)</th><th>Code resolution rate</th></tr>
-  <tr><td>Email spam</td><td>Sender domain + keyword count</td><td>Semantic intent analysis</td><td>~48%</td></tr>
-  <tr><td>Intent routing</td><td>Exact match on common intents ("help", "stop")</td><td>Ambiguous utterance classification</td><td>~70%</td></tr>
+  <tr><th>Domain</th><th>Stage 1 (pure code, α=0)</th><th>Escalation (α=0.8)</th><th>Typical code resolution</th></tr>
+  <tr><td>Email spam</td><td>Sender domain + keyword count</td><td>Semantic intent analysis</td><td>~76%</td></tr>
+  <tr><td>Intent routing</td><td>Exact match on common intents</td><td>Ambiguous utterance classification</td><td>~70%</td></tr>
   <tr><td>Content moderation</td><td>Blocklist + regex</td><td>Context-dependent toxicity</td><td>~60%</td></tr>
   <tr><td>Sensor monitoring</td><td>Threshold + rolling statistics</td><td>Distribution shift analysis</td><td>~90%</td></tr>
-  <tr><td>Document triage</td><td>Header + metadata</td><td>Full document understanding</td><td>~75%</td></tr>
+  <tr><td>Document triage</td><td>Header + metadata classification</td><td>Full document understanding</td><td>~75%</td></tr>
 </table>
 
-<p>The economics: at 100K inputs/hour with a $0.03/model call, uniform invocation costs $3,000/hour. If 48% resolve at α=0, the signal chain costs $1,560/hour. At 10M inputs/day, that's $34M/year vs $18M/year. The savings are proportional to your code-resolution rate.</p>
+<p>The pattern is the same across all of them: cheap computation handles the common cases, expensive computation handles the rest, and tiles carry context so the expensive computation doesn't re-derive what the cheap computation already figured out.</p>
 
 <hr>
 
-<h2>Compression: small models for narrow decisions.</h2>
+<h2>What we haven't solved.</h2>
 
-<p>A model scoped to one room's decision space compresses far better than a general-purpose model. The decision boundary for binary drift detection lives on a low-dimensional manifold - <a href="https://github.com/SuperInstance/tensor-spline">SplineLinear</a> reparameterizes the weight matrix using Eisenstein lattice basis functions:</p>
+<p>The benchmark is 50 emails. That's a proof of concept, not a production validation. Real deployment needs 10K+ inputs, precision/recall curves, adversarial examples, and distribution shift testing. We haven't done that yet.</p>
 
-<table>
-  <tr><th>Model</th><th>Parameters</th><th>Accuracy (drift-detect)</th><th>Inference</th></tr>
-  <tr><td>Dense baseline</td><td>16,384</td><td>100%</td><td>0.8ms</td></tr>
-  <tr><td>SplineLinear</td><td>820</td><td>100%</td><td>0.3ms</td></tr>
-  <tr><td>LoRA adapter</td><td>4,096</td><td>87%</td><td>0.6ms</td></tr>
-</table>
+<p>The code handlers in our benchmark are hand-tuned for the test set. Production code handlers would need to be trained or configured for each domain. The 76% code-resolution rate depends entirely on how good your stage 1 rules are.</p>
 
-<p>20× compression, same accuracy, sub-millisecond on CPU. On an ESP32-S3: 4.2 KB flash, 1.8 KB RAM, 0.3ms inference. This works because the model solves one narrow decision per room - not general intelligence.</p>
+<p>Auto-tuning α across a 10-room chain is a multi-armed bandit problem with 10<sup>10</sup> configurations. Cascading deadband — every stage triggering simultaneously — could spike costs. Tiles bloat on long chains. Stale seeds produce wrong answers when input distributions shift.</p>
+
+<p>The implementation uses a mock model backend for testing and real model APIs for the benchmark above. Production deployment requires adapters with batching, retries, rate limiting, and caching. Those don't exist yet.</p>
 
 <hr>
 
-<h2>Open problems.</h2>
+<h2>The implementation.</h2>
 
-<p>Auto-tuning α across a 10-room chain is a multi-armed bandit problem with 10<sup>10</sup> configurations. Cascading deadband - every room triggering simultaneously - could spike costs. Tiles bloat on long chains. Stale seeds produce wrong answers when input distributions shift.</p>
-
-<p>The current benchmark uses a deterministic mock model backend. Production deployment requires real model adapters with batching, retries, and rate limiting.</p>
-
-<hr>
-
-<h2>Implementation.</h2>
-
-<p><a href="https://github.com/SuperInstance/spreader-tool">spreader-tool</a> - 310 tests, zero dependencies, pure Python. Run the benchmark: <code>python examples/spam_filter.py</code></p>
+<p><a href="https://github.com/SuperInstance/spreader-tool">spreader-tool</a> — 310 tests, zero dependencies, pure Python. The benchmark scripts:</p>
 
 <ul class="papers-list">
-  <li><a href="https://github.com/SuperInstance/plato-types">plato-types</a> - Tile lifecycle, Lamport clocks, content addressing</li>
-  <li><a href="https://github.com/SuperInstance/tensor-spline">tensor-spline</a> - SplineLinear compression (820 params, same accuracy)</li>
-  <li><a href="https://github.com/SuperInstance/plato-training">plato-training</a> - Micro-model training across 8 tasks × 6 hardware targets</li>
-  <li><a href="https://github.com/SuperInstance/plato-twin-maker">plato-twin-maker</a> - Auto-tile any repository into a PLATO twin</li>
+  <li><a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/real_benchmark.py">Real API benchmark</a> — Groq + Seed-mini, the numbers above</li>
+  <li><a href="https://github.com/SuperInstance/spreader-tool/blob/master/examples/spam_filter.py">Mock benchmark</a> — deterministic, no API keys needed</li>
 </ul>
 
-<h2>Go deeper.</h2>
-
-<p>The <a href="papers/SIGNAL-CHAIN.md">full paper</a> covers the architecture in detail - formal problem statement, pipeline execution algorithm, evaluation against baselines, ablation results, and related work. 6,000 words, concrete throughout.</p>
+<p>Related modules:</p>
 
 <ul class="papers-list">
-  <li><a href="papers/DEADBAND-VOLUME-PEDAL.md">Deadband detection</a> - KPI monitoring with hysteresis and duration gates</li>
-  <li><a href="papers/SELF-HEALING-REENTRY.md">Frozen Context Windows</a> - immutable failure snapshots for debugging</li>
-  <li><a href="papers/DISTILLATION-TONE-CRAFTING.md">Distillation</a> - from high-α runs to locked seeds</li>
-  <li><a href="papers/PLINKO-MODEL.md">Models as path weights</a> - why per-room models compress 20×</li>
-  <li><a href="papers/TILES-AS-CONTEXT.md">Tiles as context carriers</a> - knowledge at point of use</li>
+  <li><a href="https://github.com/SuperInstance/plato-types">plato-types</a> — Tile lifecycle, Lamport clocks, content addressing</li>
+  <li><a href="https://github.com/SuperInstance/tensor-spline">tensor-spline</a> — SplineLinear compression (820 params, same accuracy)</li>
+  <li><a href="https://github.com/SuperInstance/plato-training">plato-training</a> — Micro-model training across 8 tasks × 6 hardware targets</li>
 </ul>
 
-<p>MIT License · <a href="https://github.com/SuperInstance/signal-chain">GitHub</a> · Part of <a href="https://plato.purplepincher.org/">PLATO</a></p>
+<p>The <a href="papers/SIGNAL-CHAIN.md">full paper</a> covers the architecture in detail — formal problem statement, pipeline algorithm, evaluation, ablation, related work. 6,400 words. Additional papers on <a href="papers/DEADBAND-VOLUME-PEDAL.md">deadband detection</a>, <a href="papers/SELF-HEALING-REENTRY.md">frozen context windows</a>, <a href="papers/DISTILLATION-TONE-CRAFTING.md">distillation</a>, and <a href="papers/TILES-AS-CONTEXT.md">tiles as context carriers</a>.</p>
+
+<footer>
+  <div class="links">
+    <a href="https://github.com/SuperInstance/signal-chain">GitHub</a>
+    <a href="https://plato.purplepincher.org/">PLATO</a>
+    <a href="papers/SIGNAL-CHAIN.md">Paper</a>
+  </div>
+  <p>MIT License · <a href="https://github.com/SuperInstance">SuperInstance</a></p>
+</footer>
 
 </article>
-
 </body>
 </html>
