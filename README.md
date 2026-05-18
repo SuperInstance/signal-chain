@@ -1,5 +1,7 @@
 # signal-chain
 
+![CI](https://github.com/SuperInstance/signal-chain/actions/workflows/ci.yml/badge.svg)
+
 > **Every room has a dial. The dial controls model vs code. Tune the chain like a synth.**
 
 ---
