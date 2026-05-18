@@ -36,6 +36,7 @@ The thesis isn't just theory. We built it.
 
 | Repo | What it proves | Tests |
 |------|---------------|-------|
+| [**plato-twin-maker**](https://github.com/SuperInstance/plato-twin-maker) | Hermit crab factory: creates PLATO-twin of any repo, 18 languages | — |
 | [**spreader-tool**](https://github.com/SuperInstance/spreader-tool) | Deadband detection, frozen context windows, seed locking, self-optimization | 241 |
 | [**plato-training**](https://github.com/SuperInstance/plato-training) | Micro-model training, 8 tasks × 8 hardware targets, fleet deploy | 116 |
 | [**tensor-spline**](https://github.com/SuperInstance/tensor-spline) | SplineLinear compression (Eisenstein lattice weights, 20× at same accuracy) | 57 |
