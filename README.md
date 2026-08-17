@@ -2,9 +2,21 @@
 
 **why every room needs a dial for model vs code**
 
+<p align="center"><img src="assets/images/thesis.png" alt="The signal chain — model vs code" width="720"></p>
+
 *The ancestor is this repo. The descendant is
 [`github.com/SuperInstance/elephant`](https://github.com/SuperInstance/elephant)
 — the inter-model temperature. One project, one idea, two generations.*
+
+---
+
+```mermaid
+graph LR
+    A[Raw events] -->|stage 1| B[The Dials<br/>model vs code · mood · volume]
+    B -->|stage 2| C[The Field<br/>the room's temperature]
+    C -->|stage 3| D[Tint / Nudge<br/>the room acts on everyone in it]
+    D --> E[The room, changed]
+```
 
 ---
 
