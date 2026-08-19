@@ -2,6 +2,8 @@
 
 **why every room needs a dial for model vs code**
 
+<p align="center"><img src="assets/images/hero.jpg" alt="warm model-light and cold code-light traveling one channel" width="640"></p>
+
 <p align="center"><img src="assets/images/thesis.png" alt="The signal chain — model vs code" width="720"></p>
 
 *The ancestor is this repo. The descendant is
