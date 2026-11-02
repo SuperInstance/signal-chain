@@ -109,6 +109,8 @@ signal and understanding a room.
 
 ---
 
+A note on what the dial is not: the model-vs-code dial does not route execution. Nothing here sends 'cold' content to code and 'warm' content to a model. The dial routes the KIND of attention — verification toward code, interpretation toward prose — and it is meaningful only in ensemble, by contrast, alongside the other dials in the bank.
+
 ## The Signal Chain, Modern — model vs code as a dial
 
 The thesis, made executable. `signal_chain_dial.py` (repo root) is a
